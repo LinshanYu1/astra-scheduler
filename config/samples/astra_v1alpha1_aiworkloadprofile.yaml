@@ -1,0 +1,9 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  labels:
+    app.kubernetes.io/name: astra-scheduler
+    app.kubernetes.io/managed-by: kustomize
+  name: aiworkloadprofile-sample
+spec:
+  # TODO(user): Add fields here

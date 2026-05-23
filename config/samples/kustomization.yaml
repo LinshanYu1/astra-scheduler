@@ -1,0 +1,6 @@
+## Append samples of your project ##
+resources:
+- astra_v1alpha1_aiworkloadprofile.yaml
+- astra_v1alpha1_ainoderesourceprofile.yaml
+- astra_v1alpha1_airesourceallocation.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
