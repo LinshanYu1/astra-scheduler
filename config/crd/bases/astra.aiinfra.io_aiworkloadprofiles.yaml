@@ -14,10 +14,26 @@ spec:
     singular: aiworkloadprofile
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.workloadType
+      name: Type
+      type: string
+    - jsonPath: .spec.priority
+      name: Priority
+      type: string
+    - jsonPath: .spec.demandShape
+      name: Shape
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AIWorkloadProfile is the Schema for the aiworkloadprofiles API
+        description: AIWorkloadProfile is the Schema for the aiworkloadprofiles API.
         properties:
           apiVersion:
             description: |-
@@ -37,27 +53,174 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of AIWorkloadProfile
+            description: spec defines the desired state of AIWorkloadProfile.
             properties:
-              foo:
-                description: foo is an example field of AIWorkloadProfile. Edit aiworkloadprofile_types.go
-                  to remove/update
+              demandShape:
+                description: |-
+                  demandShape describes the dominant AI serving pressure.
+                  Examples: decode_heavy, prefill_heavy, kv_heavy, mixed.
                 type: string
+              policy:
+                description: policy describes which adjustment actions are allowed
+                  for this workload.
+                properties:
+                  allowBorrowing:
+                    description: allowBorrowing means this workload may use idle capacity
+                      above its required budget.
+                    type: boolean
+                  allowReclaimFromLowerPriority:
+                    description: allowReclaimFromLowerPriority means this workload
+                      can reclaim capacity from lower-priority workloads.
+                    type: boolean
+                  evictable:
+                    description: evictable means this workload can be terminated or
+                      moved as a last-resort action.
+                    type: boolean
+                  pauseable:
+                    description: pauseable means the workload can be paused and resumed
+                      by the agent/runtime.
+                    type: boolean
+                  throttleable:
+                    description: throttleable means the scheduler may ask the agent/runtime
+                      to reduce concurrency or token budget.
+                    type: boolean
+                type: object
+              priority:
+                description: |-
+                  priority is the business priority used by the policy engine.
+                  Examples: high, medium, low.
+                type: string
+              resources:
+                description: resources describes hard required resources and soft
+                  preferred resources.
+                properties:
+                  preferred:
+                    description: preferred is the target resource budget used for
+                      scoring and elastic growth.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                  required:
+                    description: required is the minimum resource budget needed to
+                      place this workload.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              slo:
+                description: slo describes service-level objectives or offline deadlines.
+                properties:
+                  deadlineHours:
+                    description: deadlineHours is mainly used by delay-tolerant offline
+                      jobs.
+                    format: int32
+                    type: integer
+                  latencyP99Ms:
+                    description: latencyP99Ms is the p99 end-to-end latency target.
+                    format: int32
+                    type: integer
+                  ttftP95Ms:
+                    description: ttftP95Ms is the p95 time-to-first-token target for
+                      online LLM serving.
+                    format: int32
+                    type: integer
+                type: object
+              timeWindows:
+                description: timeWindows describe business peak windows that should
+                  affect scheduling.
+                items:
+                  description: TimeWindow describes a repeating daily business window.
+                  properties:
+                    end:
+                      description: end is a local wall-clock time in HH:MM format.
+                        It may be earlier than start for overnight windows.
+                      type: string
+                    name:
+                      type: string
+                    start:
+                      description: start is a local wall-clock time in HH:MM format.
+                      type: string
+                    timezone:
+                      description: timezone is an IANA timezone name, such as America/New_York.
+                      type: string
+                  required:
+                  - end
+                  - name
+                  - start
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              workloadRef:
+                description: workloadRef points to the Kubernetes workload represented
+                  by this profile.
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    description: namespace is optional because some referenced objects
+                      can be cluster-scoped.
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+              workloadType:
+                description: |-
+                  workloadType describes whether the workload is online, offline, or hybrid.
+                  Examples: online, offline, hybrid.
+                type: string
+            required:
+            - priority
+            - workloadRef
+            - workloadType
             type: object
           status:
-            description: status defines the observed state of AIWorkloadProfile
+            description: status defines the observed state of AIWorkloadProfile.
             properties:
               conditions:
-                description: |-
-                  conditions represent the current state of the AIWorkloadProfile resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                description: conditions represent the current state of the AIWorkloadProfile
+                  resource.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -116,6 +279,17 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              currentWindow:
+                description: currentWindow is the active time window name, if any.
+                type: string
+              phase:
+                description: phase is the high-level lifecycle phase observed by the
+                  scheduler.
+                type: string
+              sloRisk:
+                description: sloRisk is a coarse risk level inferred from metrics,
+                  such as low, medium, or high.
+                type: string
             type: object
         required:
         - spec

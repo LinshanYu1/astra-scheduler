@@ -14,11 +14,30 @@ spec:
     singular: airesourceallocation
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.workloadRef.name
+      name: Workload
+      type: string
+    - jsonPath: .spec.workloadRef.namespace
+      name: Namespace
+      type: string
+    - jsonPath: .spec.nodeName
+      name: Node
+      type: string
+    - jsonPath: .spec.allocationType
+      name: Type
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: AIResourceAllocation is the Schema for the airesourceallocations
-          API
+          API.
         properties:
           apiVersion:
             description: |-
@@ -38,27 +57,100 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of AIResourceAllocation
+            description: spec defines the desired state of AIResourceAllocation.
             properties:
-              foo:
-                description: foo is an example field of AIResourceAllocation. Edit
-                  airesourceallocation_types.go to remove/update
+              actions:
+                description: actions describes what the agent may do to this allocation
+                  later.
+                properties:
+                  evictable:
+                    type: boolean
+                  pauseable:
+                    type: boolean
+                  reclaimable:
+                    type: boolean
+                  throttleable:
+                    type: boolean
+                type: object
+              allocationType:
+                description: |-
+                  allocationType describes the resource ownership model.
+                  Examples: guaranteed, borrowed, reclaimed.
                 type: string
+              assignedGPU:
+                description: assignedGPU identifies the physical GPU or MIG slice
+                  selected by the scheduler.
+                properties:
+                  gpuID:
+                    type: string
+                  migSliceID:
+                    type: string
+                type: object
+              nodeName:
+                description: nodeName is the target Kubernetes node chosen by the
+                  scheduler.
+                type: string
+              reason:
+                description: reason is a human-readable explanation from the scheduler.
+                type: string
+              resources:
+                description: resources describes the concrete resource budget assigned
+                  by the scheduler.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
+              workloadRef:
+                description: |-
+                  workloadRef points to the AIWorkloadProfile that owns this allocation.
+                  The referenced profile is usually in the same namespace as this allocation.
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    description: namespace is optional because some referenced objects
+                      can be cluster-scoped.
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+            required:
+            - nodeName
+            - workloadRef
             type: object
           status:
-            description: status defines the observed state of AIResourceAllocation
+            description: status defines the observed state of AIResourceAllocation.
             properties:
+              appliedAt:
+                description: appliedAt is the time when the agent successfully applied
+                  this allocation.
+                format: date-time
+                type: string
               conditions:
-                description: |-
-                  conditions represent the current state of the AIResourceAllocation resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                description: conditions represent the current state of the AIResourceAllocation
+                  resource.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -117,6 +209,42 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              message:
+                description: message is a short human-readable status message.
+                type: string
+              observedAt:
+                description: observedAt is the last time this allocation was observed
+                  by the agent.
+                format: date-time
+                type: string
+              observedResources:
+                description: observedResources describes the runtime resources observed
+                  after applying the allocation.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
+              phase:
+                description: |-
+                  phase is the high-level execution phase reported by the node agent.
+                  Examples: Pending, Applying, Applied, Failed, Releasing, Released.
+                type: string
             type: object
         required:
         - spec

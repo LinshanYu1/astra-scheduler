@@ -14,7 +14,26 @@ spec:
     singular: ainoderesourceprofile
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeName
+      name: Node
+      type: string
+    - jsonPath: .spec.backendType
+      name: Backend
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.available.gpuCount
+      name: GPU
+      type: integer
+    - jsonPath: .status.available.kvCacheGiB
+      name: KVCache
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: AINodeResourceProfile is the Schema for the ainoderesourceprofiles
@@ -40,25 +59,280 @@ spec:
           spec:
             description: spec defines the desired state of AINodeResourceProfile
             properties:
-              foo:
-                description: foo is an example field of AINodeResourceProfile. Edit
-                  ainoderesourceprofile_types.go to remove/update
+              backendType:
+                description: |-
+                  backendType identifies the node-side backend that reports and applies resources.
+                  Examples: fake, nvidia, runtime, cri.
                 type: string
+              capabilities:
+                description: capabilities describes which node-side adjustment actions
+                  are supported.
+                properties:
+                  borrowing:
+                    type: boolean
+                  eviction:
+                    type: boolean
+                  migResize:
+                    type: boolean
+                  pauseResume:
+                    type: boolean
+                  reclaim:
+                    type: boolean
+                  sharing:
+                    type: boolean
+                  throttling:
+                    type: boolean
+                type: object
+              gpus:
+                description: gpus describes static GPU device capability from the
+                  scheduler's view.
+                items:
+                  description: GPUDeviceSpec describes static capability of one GPU
+                    device.
+                  properties:
+                    computeScore:
+                      description: computeScore is a normalized compute capacity score
+                        used by the scheduler.
+                      format: int32
+                      type: integer
+                    id:
+                      description: id is a stable local identifier used by Astra.
+                      type: string
+                    memoryGiB:
+                      description: memoryGiB is the physical GPU memory size.
+                      format: int32
+                      type: integer
+                    migEnabled:
+                      description: migEnabled indicates whether this GPU is currently
+                        managed as MIG-capable.
+                      type: boolean
+                    product:
+                      description: product is the GPU product name, such as A100,
+                        H100, L40S, or fake-a100.
+                      type: string
+                    uuid:
+                      description: uuid is the vendor or backend reported GPU UUID.
+                      type: string
+                  required:
+                  - id
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - id
+                x-kubernetes-list-type: map
+              nodeName:
+                description: nodeName is the Kubernetes node represented by this profile.
+                type: string
+              runtime:
+                description: runtime describes AI runtime capacity and supported serving
+                  features.
+                properties:
+                  capacity:
+                    description: capacity describes the runtime-level schedulable
+                      budget.
+                    properties:
+                      kvCacheGiB:
+                        description: kvCacheGiB is the KV-cache budget exposed to
+                          the scheduler.
+                        format: int32
+                        type: integer
+                      maxBatchTokens:
+                        description: maxBatchTokens is the maximum token count the
+                          runtime can batch.
+                        format: int32
+                        type: integer
+                      maxConcurrentRequests:
+                        description: maxConcurrentRequests is the approximate request
+                          concurrency limit.
+                        format: int32
+                        type: integer
+                      tokenThroughput:
+                        description: tokenThroughput describes prefill/decode token
+                          budget.
+                        properties:
+                          decodeTokensPerSecond:
+                            format: int32
+                            type: integer
+                          prefillTokensPerSecond:
+                            format: int32
+                            type: integer
+                          totalTokensPerSecond:
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  supports:
+                    description: supports lists runtime features usable by the scheduler
+                      and agent.
+                    properties:
+                      continuousBatching:
+                        type: boolean
+                      kvCache:
+                        type: boolean
+                      pauseResume:
+                        type: boolean
+                      prefixCache:
+                        type: boolean
+                      requestThrottling:
+                        type: boolean
+                      tokenThroughput:
+                        type: boolean
+                    type: object
+                  type:
+                    description: type identifies the runtime family, such as fake,
+                      vllm, sglang, tgi, or tensorrt-llm.
+                    type: string
+                type: object
+            required:
+            - nodeName
             type: object
           status:
             description: status defines the observed state of AINodeResourceProfile
             properties:
+              allocatable:
+                description: allocatable summarizes schedulable capacity.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
+              allocated:
+                description: allocated summarizes currently assigned resources.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
+              allocations:
+                description: allocations lists workload allocations currently applied
+                  on this node.
+                items:
+                  description: NodeAllocationStatus describes one workload allocation
+                    currently applied on the node.
+                  properties:
+                    actions:
+                      description: AllocationActions describes what the scheduler/agent
+                        may do to this allocation.
+                      properties:
+                        evictable:
+                          type: boolean
+                        pauseable:
+                          type: boolean
+                        reclaimable:
+                          type: boolean
+                        throttleable:
+                          type: boolean
+                      type: object
+                    assignedGPU:
+                      description: AssignedGPU identifies the physical GPU or MIG
+                        slice assigned to an allocation.
+                      properties:
+                        gpuID:
+                          type: string
+                        migSliceID:
+                          type: string
+                      type: object
+                    demandShape:
+                      description: demandShape describes whether the workload is prefill-heavy,
+                        decode-heavy, kv-heavy, or mixed.
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    phase:
+                      type: string
+                    priority:
+                      type: string
+                    resources:
+                      description: ResourceSummary summarizes GPU and runtime resources
+                        at node level.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    workloadName:
+                      type: string
+                    workloadType:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              available:
+                description: available summarizes remaining resources.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
               conditions:
-                description: |-
-                  conditions represent the current state of the AINodeResourceProfile resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                description: conditions represent the current state of the AINodeResourceProfile
+                  resource.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -117,6 +391,132 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              gpus:
+                description: gpus describes current GPU and MIG slice state.
+                items:
+                  description: GPUDeviceStatus describes observed GPU state.
+                  properties:
+                    allocated:
+                      type: boolean
+                    allocatedTo:
+                      description: AllocationRef identifies the workload allocation
+                        using a resource.
+                      properties:
+                        allocationName:
+                          type: string
+                        namespace:
+                          type: string
+                        workloadName:
+                          type: string
+                      type: object
+                    id:
+                      type: string
+                    migEnabled:
+                      type: boolean
+                    migSlices:
+                      description: migSlices describes concrete MIG instances available
+                        on this GPU.
+                      items:
+                        description: MIGSliceStatus describes one concrete schedulable
+                          MIG slice.
+                        properties:
+                          allocatable:
+                            type: boolean
+                          allocated:
+                            type: boolean
+                          allocatedTo:
+                            description: AllocationRef identifies the workload allocation
+                              using a resource.
+                            properties:
+                              allocationName:
+                                type: string
+                              namespace:
+                                type: string
+                              workloadName:
+                                type: string
+                            type: object
+                          computeSlices:
+                            description: computeSlices is the relative compute partition
+                              count represented by this slice.
+                            format: int32
+                            type: integer
+                          id:
+                            type: string
+                          memoryGiB:
+                            format: int32
+                            type: integer
+                          profile:
+                            description: profile is the MIG slice shape, such as 1g.10gb
+                              or 2g.20gb.
+                            type: string
+                          uuid:
+                            type: string
+                        required:
+                        - id
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - id
+                      x-kubernetes-list-type: map
+                    uuid:
+                      type: string
+                  required:
+                  - id
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - id
+                x-kubernetes-list-type: map
+              observedAt:
+                description: observedAt is the last time this profile was refreshed
+                  by the agent.
+                format: date-time
+                type: string
+              phase:
+                description: phase is the high-level readiness phase reported by the
+                  node agent.
+                type: string
+              runtime:
+                description: runtime describes runtime pressure and observed serving
+                  signals.
+                properties:
+                  pressure:
+                    description: RuntimePressure contains percent-based pressure and
+                      SLO-related runtime signals.
+                    properties:
+                      decodeUtilizationPercent:
+                        format: int32
+                        type: integer
+                      gpuMemoryUtilizationPercent:
+                        format: int32
+                        type: integer
+                      gpuUtilizationPercent:
+                        format: int32
+                        type: integer
+                      kvCacheUtilizationPercent:
+                        format: int32
+                        type: integer
+                      latencyP99Ms:
+                        format: int32
+                        type: integer
+                      prefillUtilizationPercent:
+                        format: int32
+                        type: integer
+                      queueDepth:
+                        format: int32
+                        type: integer
+                      sloRisk:
+                        description: sloRisk is a coarse risk level, such as low,
+                          medium, or high.
+                        type: string
+                      tpotP95Ms:
+                        format: int32
+                        type: integer
+                      ttftP95Ms:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
             type: object
         required:
         - spec

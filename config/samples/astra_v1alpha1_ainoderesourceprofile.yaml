@@ -4,6 +4,187 @@ metadata:
   labels:
     app.kubernetes.io/name: astra-scheduler
     app.kubernetes.io/managed-by: kustomize
-  name: ainoderesourceprofile-sample
+  name: worker0
 spec:
-  # TODO(user): Add fields here
+  nodeName: worker0
+  backendType: fake
+
+  gpus:
+    - id: gpu-0
+      uuid: GPU-fake-worker0-0
+      product: A100
+      memoryGiB: 80
+      computeScore: 100
+      migEnabled: true
+
+    - id: gpu-1
+      uuid: GPU-fake-worker0-1
+      product: A100
+      memoryGiB: 80
+      computeScore: 100
+      migEnabled: false
+
+  runtime:
+    type: fake
+    supports:
+      kvCache: true
+      tokenThroughput: true
+      prefixCache: true
+      continuousBatching: true
+      requestThrottling: true
+      pauseResume: true
+    capacity:
+      kvCacheGiB: 96
+      maxConcurrentRequests: 256
+      maxBatchTokens: 65536
+      tokenThroughput:
+        prefillTokensPerSecond: 16000
+        decodeTokensPerSecond: 8000
+        totalTokensPerSecond: 24000
+
+  capabilities:
+    sharing: true
+    borrowing: true
+    reclaim: true
+    throttling: true
+    pauseResume: true
+    eviction: false
+    migResize: false
+
+status:
+  phase: Ready
+  observedAt: "2026-06-02T12:00:00Z"
+
+  gpus:
+    - id: gpu-0
+      uuid: GPU-fake-worker0-0
+      allocated: true
+      migEnabled: true
+      migSlices:
+        - id: mig-0
+          uuid: MIG-fake-worker0-0
+          profile: 1g.10gb
+          memoryGiB: 10
+          computeSlices: 1
+          allocatable: true
+          allocated: true
+          allocatedTo:
+            namespace: ai
+            workloadName: live-chat-ai
+            allocationName: live-chat-ai-worker0
+
+        - id: mig-1
+          uuid: MIG-fake-worker0-1
+          profile: 1g.10gb
+          memoryGiB: 10
+          computeSlices: 1
+          allocatable: true
+          allocated: false
+
+        - id: mig-2
+          uuid: MIG-fake-worker0-2
+          profile: 2g.20gb
+          memoryGiB: 20
+          computeSlices: 2
+          allocatable: true
+          allocated: false
+
+    - id: gpu-1
+      uuid: GPU-fake-worker0-1
+      allocated: true
+      migEnabled: false
+      allocatedTo:
+        namespace: ai
+        workloadName: offline-embedding
+        allocationName: offline-embedding-worker0
+
+  allocatable:
+    gpuCount: 2
+    gpuMemoryGiB: 160
+    kvCacheGiB: 96
+    prefillTokensPerSecond: 16000
+    decodeTokensPerSecond: 8000
+    totalTokensPerSecond: 24000
+
+  allocated:
+    gpuCount: 1
+    gpuMemoryGiB: 90
+    kvCacheGiB: 44
+    prefillTokensPerSecond: 7000
+    decodeTokensPerSecond: 3500
+    totalTokensPerSecond: 10500
+
+  available:
+    gpuCount: 1
+    gpuMemoryGiB: 70
+    kvCacheGiB: 52
+    prefillTokensPerSecond: 9000
+    decodeTokensPerSecond: 4500
+    totalTokensPerSecond: 13500
+
+  runtime:
+    pressure:
+      gpuUtilizationPercent: 71
+      gpuMemoryUtilizationPercent: 56
+      kvCacheUtilizationPercent: 46
+      prefillUtilizationPercent: 44
+      decodeUtilizationPercent: 43
+      queueDepth: 18
+      ttftP95Ms: 620
+      tpotP95Ms: 38
+      latencyP99Ms: 2400
+      sloRisk: low
+
+  allocations:
+    - name: live-chat-ai-worker0
+      namespace: ai
+      workloadName: live-chat-ai
+      workloadType: online
+      priority: high
+      demandShape: decode_heavy
+      assignedGPU:
+        gpuID: gpu-0
+        migSliceID: mig-0
+      resources:
+        gpuCount: 0
+        gpuMemoryGiB: 10
+        kvCacheGiB: 24
+        prefillTokensPerSecond: 1000
+        decodeTokensPerSecond: 2500
+      actions:
+        reclaimable: false
+        throttleable: false
+        pauseable: false
+        evictable: false
+      phase: Applied
+
+    - name: offline-embedding-worker0
+      namespace: ai
+      workloadName: offline-embedding
+      workloadType: offline
+      priority: low
+      demandShape: prefill_heavy
+      assignedGPU:
+        gpuID: gpu-1
+      resources:
+        gpuCount: 1
+        gpuMemoryGiB: 80
+        kvCacheGiB: 20
+        prefillTokensPerSecond: 6000
+        decodeTokensPerSecond: 1000
+      actions:
+        reclaimable: true
+        throttleable: true
+        pauseable: true
+        evictable: false
+      phase: Applied
+
+  conditions:
+    - type: AgentReady
+      status: "True"
+      reason: BackendReady
+      message: fake backend is reporting node resource state
+    - type: RuntimeReady
+      status: "True"
+      reason: RuntimeHealthy
+      message: fake runtime capacity is available

@@ -20,38 +20,63 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// AIResourceAllocationSpec defines the desired state of AIResourceAllocation
+// AIResourceAllocationSpec defines one scheduler decision for one AI workload.
 type AIResourceAllocationSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+	// workloadRef points to the AIWorkloadProfile that owns this allocation.
+	// The referenced profile is usually in the same namespace as this allocation.
+	// +required
+	WorkloadRef KubernetesObjectRef `json:"workloadRef"`
 
-	// foo is an example field of AIResourceAllocation. Edit airesourceallocation_types.go to remove/update
+	// nodeName is the target Kubernetes node chosen by the scheduler.
+	// +required
+	NodeName string `json:"nodeName"`
+
+	// assignedGPU identifies the physical GPU or MIG slice selected by the scheduler.
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	AssignedGPU *AssignedGPU `json:"assignedGPU,omitempty"`
+
+	// resources describes the concrete resource budget assigned by the scheduler.
+	// +optional
+	Resources *ResourceSummary `json:"resources,omitempty"`
+
+	// allocationType describes the resource ownership model.
+	// Examples: guaranteed, borrowed, reclaimed.
+	// +optional
+	AllocationType string `json:"allocationType,omitempty"`
+
+	// actions describes what the agent may do to this allocation later.
+	// +optional
+	Actions *AllocationActions `json:"actions,omitempty"`
+
+	// reason is a human-readable explanation from the scheduler.
+	// +optional
+	Reason string `json:"reason,omitempty"`
 }
 
 // AIResourceAllocationStatus defines the observed state of AIResourceAllocation.
 type AIResourceAllocationStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// phase is the high-level execution phase reported by the node agent.
+	// Examples: Pending, Applying, Applied, Failed, Releasing, Released.
+	// +optional
+	Phase string `json:"phase,omitempty"`
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// observedAt is the last time this allocation was observed by the agent.
+	// +optional
+	ObservedAt *metav1.Time `json:"observedAt,omitempty"`
+
+	// appliedAt is the time when the agent successfully applied this allocation.
+	// +optional
+	AppliedAt *metav1.Time `json:"appliedAt,omitempty"`
+
+	// observedResources describes the runtime resources observed after applying the allocation.
+	// +optional
+	ObservedResources *ResourceSummary `json:"observedResources,omitempty"`
+
+	// message is a short human-readable status message.
+	// +optional
+	Message string `json:"message,omitempty"`
 
 	// conditions represent the current state of the AIResourceAllocation resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
@@ -60,27 +85,33 @@ type AIResourceAllocationStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Workload",type=string,JSONPath=`.spec.workloadRef.name`
+// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.spec.workloadRef.namespace`
+// +kubebuilder:printcolumn:name="Node",type=string,JSONPath=`.spec.nodeName`
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.allocationType`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// AIResourceAllocation is the Schema for the airesourceallocations API
+// AIResourceAllocation is the Schema for the airesourceallocations API.
 type AIResourceAllocation struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
+	// metadata is a standard object metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	// spec defines the desired state of AIResourceAllocation
+	// spec defines the desired state of AIResourceAllocation.
 	// +required
 	Spec AIResourceAllocationSpec `json:"spec"`
 
-	// status defines the observed state of AIResourceAllocation
+	// status defines the observed state of AIResourceAllocation.
 	// +optional
 	Status AIResourceAllocationStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
 
-// AIResourceAllocationList contains a list of AIResourceAllocation
+// AIResourceAllocationList contains a list of AIResourceAllocation.
 type AIResourceAllocationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitzero"`
