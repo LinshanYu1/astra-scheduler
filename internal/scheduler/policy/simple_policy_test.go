@@ -7,87 +7,167 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestNormalizeScoreDetailsPrefersPreferredCoverageBeforeHeadroom(t *testing.T) {
+func TestNormalizeScoreDetailsUsesWeightedHeadroomScore(t *testing.T) {
 	p := NewSimplePolicy()
 
 	decisions := p.NormalizeScoreDetails(map[string]NodeScoreDetail{
 		"node-a": {
-			NodeName:                    "node-a",
-			PreferredMatched:            4,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			KeyResourceHeadroom:         2,
-			OtherHeadroomScore:          20,
+			NodeName:              "node-a",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 80,
 		},
 		"node-b": {
-			NodeName:                    "node-b",
-			PreferredMatched:            3,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			KeyResourceHeadroom:         100,
-			OtherHeadroomScore:          100,
+			NodeName:              "node-b",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 30,
 		},
 	})
 
 	if decisions["node-a"].Score <= decisions["node-b"].Score {
-		t.Fatalf("expected node-a to win by preferred coverage, got node-a=%d node-b=%d", decisions["node-a"].Score, decisions["node-b"].Score)
+		t.Fatalf("expected node-a to win by weighted headroom, got node-a=%d node-b=%d", decisions["node-a"].Score, decisions["node-b"].Score)
 	}
 }
 
-func TestNormalizeScoreDetailsKeepsPreferredCoverageAsHardTier(t *testing.T) {
+func TestNormalizeScoreDetailsSubtractsRuntimeRisk(t *testing.T) {
 	p := NewSimplePolicy()
 
 	decisions := p.NormalizeScoreDetails(map[string]NodeScoreDetail{
 		"node-a": {
-			NodeName:                    "node-a",
-			PreferredMatched:            4,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			RuntimeRiskPenalty:          15,
+			NodeName:              "node-a",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 70,
+			RuntimeRiskPenalty:    15,
 		},
 		"node-b": {
-			NodeName:                    "node-b",
-			PreferredMatched:            3,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			KeyResourceHeadroom:         100,
-			OtherHeadroomScore:          100,
+			NodeName:              "node-b",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 60,
 		},
 	})
 
-	if decisions["node-a"].Score <= decisions["node-b"].Score {
-		t.Fatalf("expected higher preferred coverage to stay ahead, got node-a=%d node-b=%d", decisions["node-a"].Score, decisions["node-b"].Score)
+	if decisions["node-a"].Score != 55 {
+		t.Fatalf("expected runtime risk to reduce node-a score to 55, got %d", decisions["node-a"].Score)
+	}
+	if decisions["node-b"].Score != 60 {
+		t.Fatalf("expected node-b score 60, got %d", decisions["node-b"].Score)
 	}
 }
 
-func TestNormalizeScoreDetailsUsesKeyHeadroomWhenCoverageTies(t *testing.T) {
+func TestNormalizeScoreDetailsUsesWeightedHeadroomWhenCoverageTies(t *testing.T) {
 	p := NewSimplePolicy()
 
 	decisions := p.NormalizeScoreDetails(map[string]NodeScoreDetail{
 		"node-a": {
-			NodeName:                    "node-a",
-			PreferredMatched:            4,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			KeyResourceHeadroom:         2,
+			NodeName:              "node-a",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 25,
 		},
 		"node-b": {
-			NodeName:                    "node-b",
-			PreferredMatched:            4,
-			PreferredTotal:              4,
-			KeyResource:                 "kvCacheGiB",
-			KeyResourcePreferredMatched: true,
-			KeyResourceHeadroom:         8,
+			NodeName:              "node-b",
+			PreferredMatched:      4,
+			PreferredTotal:        4,
+			WeightedHeadroomScore: 75,
 		},
 	})
 
 	if decisions["node-b"].Score <= decisions["node-a"].Score {
-		t.Fatalf("expected node-b to win by key headroom, got node-a=%d node-b=%d", decisions["node-a"].Score, decisions["node-b"].Score)
+		t.Fatalf("expected node-b to win by weighted headroom, got node-a=%d node-b=%d", decisions["node-a"].Score, decisions["node-b"].Score)
+	}
+}
+
+func TestWeightedHeadroomScoreUsesDemandShapeWeights(t *testing.T) {
+	preferred := astrav1alpha1.ResourceSummary{
+		KVCacheGiB:             16,
+		DecodeTokensPerSecond:  1000,
+		PrefillTokensPerSecond: 1000,
+	}
+	available := astrav1alpha1.ResourceSummary{
+		KVCacheGiB:             32,
+		DecodeTokensPerSecond:  1000,
+		PrefillTokensPerSecond: 2000,
+	}
+
+	kvHeavyScore := weightedHeadroomScore("kvCacheGiB", preferred, available)
+	decodeHeavyScore := weightedHeadroomScore("decodeTokensPerSecond", preferred, available)
+
+	if kvHeavyScore <= decodeHeavyScore {
+		t.Fatalf("expected kv-heavy score to be higher because KV has headroom, got kv=%d decode=%d", kvHeavyScore, decodeHeavyScore)
+	}
+}
+
+func TestDemandShapeChangesBestNodeForSameNodeResources(t *testing.T) {
+	p := NewSimplePolicy()
+	nodes := []*astrav1alpha1.AINodeResourceProfile{
+		scoreTestNode("node-kv-rich", "low", astrav1alpha1.ResourceSummary{
+			GPUCount:               1,
+			GPUMemoryGiB:           20,
+			KVCacheGiB:             64,
+			PrefillTokensPerSecond: 2000,
+			DecodeTokensPerSecond:  2500,
+		}),
+		scoreTestNode("node-decode-rich", "low", astrav1alpha1.ResourceSummary{
+			GPUCount:               1,
+			GPUMemoryGiB:           20,
+			KVCacheGiB:             32,
+			PrefillTokensPerSecond: 2000,
+			DecodeTokensPerSecond:  5000,
+		}),
+		scoreTestNode("node-prefill-rich", "low", astrav1alpha1.ResourceSummary{
+			GPUCount:               1,
+			GPUMemoryGiB:           20,
+			KVCacheGiB:             32,
+			PrefillTokensPerSecond: 4000,
+			DecodeTokensPerSecond:  2500,
+		}),
+		scoreTestNode("node-risky-kv-rich", "medium", astrav1alpha1.ResourceSummary{
+			GPUCount:               1,
+			GPUMemoryGiB:           20,
+			KVCacheGiB:             64,
+			PrefillTokensPerSecond: 2000,
+			DecodeTokensPerSecond:  2500,
+		}),
+	}
+
+	tests := []struct {
+		name         string
+		demandShape  astrav1alpha1.DemandShape
+		wantBestNode string
+	}{
+		{
+			name:         "kv-heavy prefers KV headroom",
+			demandShape:  astrav1alpha1.DemandShapeKVHeavy,
+			wantBestNode: "node-kv-rich",
+		},
+		{
+			name:         "decode-heavy prefers decode throughput headroom",
+			demandShape:  astrav1alpha1.DemandShapeDecodeHeavy,
+			wantBestNode: "node-decode-rich",
+		},
+		{
+			name:         "prefill-heavy prefers prefill throughput headroom",
+			demandShape:  astrav1alpha1.DemandShapePrefillHeavy,
+			wantBestNode: "node-prefill-rich",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			profile := scoreTestProfile(test.demandShape)
+			decisions := p.NormalizeScoreDetails(scoreDetailsForNodes(p, profile, nodes))
+			bestNode, bestScore := bestScoreDecision(decisions)
+
+			if bestNode != test.wantBestNode {
+				t.Fatalf("expected %s to win, got %s with score %d; decisions=%v", test.wantBestNode, bestNode, bestScore, decisions)
+			}
+			if decisions["node-risky-kv-rich"].Score >= decisions["node-kv-rich"].Score {
+				t.Fatalf("expected medium-risk KV node to be scored below low-risk KV node, risky=%d lowRisk=%d", decisions["node-risky-kv-rich"].Score, decisions["node-kv-rich"].Score)
+			}
+		})
 	}
 }
 
@@ -125,6 +205,41 @@ func TestAllocationResourcesPreferPreferredWhenAvailable(t *testing.T) {
 	}
 	if resources.DecodeTokensPerSecond != 0 {
 		t.Fatalf("expected decode allocation to fall back to required zero, got %d", resources.DecodeTokensPerSecond)
+	}
+}
+
+func TestRequiredResourcesDoNotCountAsPreferredMatches(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := &astrav1alpha1.AIWorkloadProfile{
+		Spec: astrav1alpha1.AIWorkloadProfileSpec{
+			Resources: &astrav1alpha1.WorkloadResourceRequest{
+				Required: &astrav1alpha1.ResourceSummary{GPUCount: 1, KVCacheGiB: 8},
+			},
+		},
+	}
+	node := &astrav1alpha1.AINodeResourceProfile{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+		Spec: astrav1alpha1.AINodeResourceProfileSpec{
+			NodeName: "node-a",
+			Runtime:  tokenAndKVRuntime(),
+		},
+		Status: astrav1alpha1.AINodeResourceProfileStatus{
+			Phase: "Ready",
+			Available: &astrav1alpha1.ResourceSummary{
+				GPUCount:   2,
+				KVCacheGiB: 24,
+			},
+		},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.PreferredMatched != 0 || detail.PreferredTotal != 0 {
+		t.Fatalf("expected required-only workload to have 0/0 preferred matches, got %d/%d", detail.PreferredMatched, detail.PreferredTotal)
+	}
+
+	resources := p.AllocationResources(profile, node)
+	if resources.GPUCount != 1 || resources.KVCacheGiB != 8 {
+		t.Fatalf("expected allocation to still use required resources, got gpu=%d kv=%d", resources.GPUCount, resources.KVCacheGiB)
 	}
 }
 
@@ -168,6 +283,9 @@ func TestScoreDetailExtractsKVHeavySignals(t *testing.T) {
 	}
 	if detail.KeyResourceHeadroom != 8 {
 		t.Fatalf("expected key headroom 8, got %d", detail.KeyResourceHeadroom)
+	}
+	if detail.WeightedHeadroomScore != 56 {
+		t.Fatalf("expected weighted headroom score 56, got %d", detail.WeightedHeadroomScore)
 	}
 }
 
@@ -284,4 +402,64 @@ func tokenAndKVRuntime() *astrav1alpha1.RuntimeSpec {
 			TokenThroughput: true,
 		},
 	}
+}
+
+func scoreTestProfile(demandShape astrav1alpha1.DemandShape) *astrav1alpha1.AIWorkloadProfile {
+	return &astrav1alpha1.AIWorkloadProfile{
+		Spec: astrav1alpha1.AIWorkloadProfileSpec{
+			DemandShape: demandShape,
+			Resources: &astrav1alpha1.WorkloadResourceRequest{
+				Required: &astrav1alpha1.ResourceSummary{
+					GPUCount:               1,
+					GPUMemoryGiB:           10,
+					KVCacheGiB:             16,
+					PrefillTokensPerSecond: 1000,
+					DecodeTokensPerSecond:  1000,
+				},
+				Preferred: &astrav1alpha1.ResourceSummary{
+					GPUCount:               1,
+					GPUMemoryGiB:           20,
+					KVCacheGiB:             32,
+					PrefillTokensPerSecond: 2000,
+					DecodeTokensPerSecond:  2500,
+				},
+			},
+		},
+	}
+}
+
+func scoreTestNode(name string, sloRisk string, available astrav1alpha1.ResourceSummary) *astrav1alpha1.AINodeResourceProfile {
+	node := readyNodeWithAvailable(available)
+	node.ObjectMeta = metav1.ObjectMeta{Name: name}
+	node.Spec.NodeName = name
+	node.Spec.Runtime = tokenAndKVRuntime()
+	node.Status.Runtime = &astrav1alpha1.RuntimeStatus{
+		Pressure: &astrav1alpha1.RuntimePressure{SLORisk: sloRisk},
+	}
+	return node
+}
+
+func scoreDetailsForNodes(
+	p *SimplePolicy,
+	profile *astrav1alpha1.AIWorkloadProfile,
+	nodes []*astrav1alpha1.AINodeResourceProfile,
+) map[string]NodeScoreDetail {
+	details := make(map[string]NodeScoreDetail, len(nodes))
+	for _, node := range nodes {
+		detail := p.ScoreDetail(profile, node)
+		details[detail.NodeName] = detail
+	}
+	return details
+}
+
+func bestScoreDecision(decisions map[string]ScoreDecision) (string, int64) {
+	var bestNode string
+	var bestScore int64 = -1
+	for nodeName, decision := range decisions {
+		if decision.Score > bestScore {
+			bestNode = nodeName
+			bestScore = decision.Score
+		}
+	}
+	return bestNode, bestScore
 }

@@ -265,6 +265,11 @@ spec:
                     demandShape:
                       description: demandShape describes whether the workload is prefill-heavy,
                         decode-heavy, kv-heavy, or mixed.
+                      enum:
+                      - mixed
+                      - kv_heavy
+                      - prefill_heavy
+                      - decode_heavy
                       type: string
                     name:
                       type: string

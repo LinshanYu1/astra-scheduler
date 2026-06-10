@@ -308,7 +308,8 @@ type NodeAllocationStatus struct {
 	Priority string `json:"priority,omitempty"`
 	// demandShape describes whether the workload is prefill-heavy, decode-heavy, kv-heavy, or mixed.
 	// +optional
-	DemandShape string `json:"demandShape,omitempty"`
+	// +kubebuilder:validation:Enum=mixed;kv_heavy;prefill_heavy;decode_heavy
+	DemandShape DemandShape `json:"demandShape,omitempty"`
 	// +optional
 	AssignedGPU *AssignedGPU `json:"assignedGPU,omitempty"`
 	// +optional

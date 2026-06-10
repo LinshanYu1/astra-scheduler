@@ -25,10 +25,14 @@ type schedulingState struct {
 
 func newSchedulingState(profile *astrav1alpha1.AIWorkloadProfile) *schedulingState {
 	return &schedulingState{
-		profile:              profile,
-		nodeResources:        map[string]*astrav1alpha1.AINodeResourceProfile{},
-		scoreDetails:         map[string]policy.NodeScoreDetail{},
-		scoreDecisions:       map[string]policy.ScoreDecision{},
+		profile:        profile,
+		nodeResources:  map[string]*astrav1alpha1.AINodeResourceProfile{},
+		scoreDetails:   map[string]policy.NodeScoreDetail{},
+		scoreDecisions: map[string]policy.ScoreDecision{},
+		// PreFilter creates this per-Pod scheduling state before any node is scored.
+		// PreferredMatched starts below the minimum valid match count, so the first
+		// scored node always becomes the best tier. Score starts at 1, so that first
+		// best tier gets score 2.
 		bestPreferredMatched: -1,
 		bestPreferredScore:   1,
 		bestPreferredNodes:   sets.New[string](),
@@ -90,6 +94,8 @@ func (s *schedulingState) recordScoreDetail(nodeName string, detail policy.NodeS
 
 	s.scoreDetails[nodeName] = detail
 
+	// A higher preferred-resource match count replaces the current best tier.
+	// The new tier's intermediate score is one point above the previous best tier.
 	if detail.PreferredMatched > s.bestPreferredMatched {
 		s.bestPreferredMatched = detail.PreferredMatched
 		s.bestPreferredScore++
@@ -102,9 +108,6 @@ func (s *schedulingState) recordScoreDetail(nodeName string, detail policy.NodeS
 		return s.bestPreferredScore
 	}
 
-	if s.bestPreferredScore <= 0 {
-		return 0
-	}
 	return s.bestPreferredScore - 1
 }
 

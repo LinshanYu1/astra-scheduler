@@ -117,5 +117,5 @@ func nonBestPreferredTierScore(bestDecisions map[string]policy.ScoreDecision) in
 	if minScore <= 0 {
 		return 0
 	}
-	return minScore - 1
+	return minScore / 2
 }

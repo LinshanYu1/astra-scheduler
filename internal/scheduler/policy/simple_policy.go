@@ -2,6 +2,7 @@ package policy
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	astrav1alpha1 "github.com/linshanyu/astra-scheduler/api/v1alpha1"
@@ -27,6 +28,7 @@ type NodeScoreDetail struct {
 	KeyResourcePreferredMatched bool
 	KeyResourceHeadroom         int32
 	OtherHeadroomScore          int64
+	WeightedHeadroomScore       int64
 	RuntimeRiskPenalty          int64
 	Reason                      string
 }
@@ -134,15 +136,15 @@ func validateCapabilityHardConstraints(
 }
 
 func requiresKVCache(required astrav1alpha1.ResourceSummary, profile *astrav1alpha1.AIWorkloadProfile) bool {
-	return required.KVCacheGiB > 0 || strings.EqualFold(profile.Spec.DemandShape, "kv_heavy")
+	return required.KVCacheGiB > 0 || profile.Spec.DemandShape == astrav1alpha1.DemandShapeKVHeavy
 }
 
 func requiresTokenThroughput(required astrav1alpha1.ResourceSummary, profile *astrav1alpha1.AIWorkloadProfile) bool {
 	return required.PrefillTokensPerSecond > 0 ||
 		required.DecodeTokensPerSecond > 0 ||
 		required.TotalTokensPerSecond > 0 ||
-		strings.EqualFold(profile.Spec.DemandShape, "prefill_heavy") ||
-		strings.EqualFold(profile.Spec.DemandShape, "decode_heavy")
+		profile.Spec.DemandShape == astrav1alpha1.DemandShapePrefillHeavy ||
+		profile.Spec.DemandShape == astrav1alpha1.DemandShapeDecodeHeavy
 }
 
 func runtimeSupports(node *astrav1alpha1.AINodeResourceProfile) astrav1alpha1.RuntimeSupports {
@@ -157,14 +159,6 @@ func nodeCapabilities(node *astrav1alpha1.AINodeResourceProfile) astrav1alpha1.N
 		return astrav1alpha1.NodeCapabilities{}
 	}
 	return *node.Spec.Capabilities
-}
-
-func (p *SimplePolicy) Score(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) ScoreDecision {
-	detail := p.ScoreDetail(profile, node)
-	return ScoreDecision{
-		Score:  int64(detail.PreferredMatched),
-		Reason: detail.Reason,
-	}
 }
 
 func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) NodeScoreDetail {
@@ -185,19 +179,21 @@ func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, nod
 	available := *node.Status.Available
 	preferred := preferredResources(profile)
 	detail.PreferredMatched, detail.PreferredTotal = preferredMatchCount(preferred, available)
-	detail.KeyResource = keyResourceName(profile.Spec.DemandShape)
+	detail.KeyResource = string(focusedResourceForDemandShape(profile.Spec.DemandShape))
 	detail.KeyResourcePreferredMatched = keyResourceMatched(detail.KeyResource, preferred, available)
 	detail.KeyResourceHeadroom = keyResourceHeadroom(detail.KeyResource, preferred, available)
 	detail.OtherHeadroomScore = otherHeadroomScore(detail.KeyResource, preferred, available)
+	detail.WeightedHeadroomScore = weightedHeadroomScore(detail.KeyResource, preferred, available)
 	detail.RuntimeRiskPenalty = runtimeRiskPenalty(node)
 	detail.Reason = fmt.Sprintf(
-		"preferredMatched=%d/%d keyResource=%s keyPreferredMatched=%t keyHeadroom=%d otherHeadroom=%d runtimeRiskPenalty=%d",
+		"preferredMatched=%d/%d keyResource=%s keyPreferredMatched=%t keyHeadroom=%d otherHeadroom=%d weightedHeadroom=%d runtimeRiskPenalty=%d",
 		detail.PreferredMatched,
 		detail.PreferredTotal,
 		detail.KeyResource,
 		detail.KeyResourcePreferredMatched,
 		detail.KeyResourceHeadroom,
 		detail.OtherHeadroomScore,
+		detail.WeightedHeadroomScore,
 		detail.RuntimeRiskPenalty,
 	)
 
@@ -217,40 +213,17 @@ func (p *SimplePolicy) NormalizeScoreDetails(details map[string]NodeScoreDetail)
 		}
 	}
 
-	var maxKeyHeadroom int32
-	var maxOtherHeadroom int64
-	for _, detail := range details {
-		if detail.PreferredMatched != maxPreferredMatched {
-			continue
-		}
-		if detail.KeyResourceHeadroom > maxKeyHeadroom {
-			maxKeyHeadroom = detail.KeyResourceHeadroom
-		}
-		if detail.OtherHeadroomScore > maxOtherHeadroom {
-			maxOtherHeadroom = detail.OtherHeadroomScore
-		}
-	}
-
 	for nodeName, detail := range details {
-		score := preferredCoverageScore(detail, maxPreferredMatched)
+		score := detail.WeightedHeadroomScore
 		reasonParts := []string{
 			detail.Reason,
 			fmt.Sprintf("maxPreferredMatched=%d", maxPreferredMatched),
+			fmt.Sprintf("weightedHeadroomScore=%d", detail.WeightedHeadroomScore),
 		}
 
-		if detail.PreferredMatched == maxPreferredMatched {
-			if detail.KeyResourcePreferredMatched {
-				score += 15
-				reasonParts = append(reasonParts, "keyPreferredBonus=15")
-			}
-			keyHeadroomBonus := proportionalBonus(int64(detail.KeyResourceHeadroom), int64(maxKeyHeadroom), 20)
-			otherHeadroomBonus := proportionalBonus(detail.OtherHeadroomScore, maxOtherHeadroom, 10)
-			score += keyHeadroomBonus + otherHeadroomBonus
-			reasonParts = append(
-				reasonParts,
-				fmt.Sprintf("keyHeadroomBonus=%d", keyHeadroomBonus),
-				fmt.Sprintf("otherHeadroomBonus=%d", otherHeadroomBonus),
-			)
+		if detail.PreferredMatched < maxPreferredMatched {
+			score = score / 2
+			reasonParts = append(reasonParts, "belowBestPreferredTier=true")
 		}
 
 		score -= detail.RuntimeRiskPenalty
@@ -319,9 +292,6 @@ func preferredResources(profile *astrav1alpha1.AIWorkloadProfile) astrav1alpha1.
 	if profile.Spec.Resources.Preferred != nil {
 		return *profile.Spec.Resources.Preferred
 	}
-	if profile.Spec.Resources.Required != nil {
-		return *profile.Spec.Resources.Required
-	}
 	return astrav1alpha1.ResourceSummary{}
 }
 
@@ -353,16 +323,16 @@ func preferredMatchCount(preferred, available astrav1alpha1.ResourceSummary) (in
 	return matched, total
 }
 
-func keyResourceName(demandShape string) string {
-	switch strings.ToLower(demandShape) {
-	case "decode_heavy":
-		return "decodeTokensPerSecond"
-	case "prefill_heavy":
-		return "prefillTokensPerSecond"
-	case "kv_heavy":
-		return "kvCacheGiB"
+func focusedResourceForDemandShape(demandShape astrav1alpha1.DemandShape) astrav1alpha1.ResourceName {
+	switch demandShape {
+	case astrav1alpha1.DemandShapeDecodeHeavy:
+		return astrav1alpha1.ResourceDecodeTokensPerSec
+	case astrav1alpha1.DemandShapePrefillHeavy:
+		return astrav1alpha1.ResourcePrefillTokensPerSec
+	case astrav1alpha1.DemandShapeKVHeavy:
+		return astrav1alpha1.ResourceKVCacheGiB
 	default:
-		return "balanced"
+		return astrav1alpha1.ResourceBalancedResourceFocus
 	}
 }
 
@@ -375,7 +345,7 @@ func keyResourceMatched(key string, preferred, available astrav1alpha1.ResourceS
 }
 
 func keyResourceHeadroom(key string, preferred, available astrav1alpha1.ResourceSummary) int32 {
-	if key == "balanced" {
+	if key == string(astrav1alpha1.ResourceBalancedResourceFocus) {
 		return int32(otherHeadroomScore(key, preferred, available))
 	}
 	preferredValue, availableValue := keyResourceValues(key, preferred, available)
@@ -387,11 +357,11 @@ func keyResourceHeadroom(key string, preferred, available astrav1alpha1.Resource
 
 func keyResourceValues(key string, preferred, available astrav1alpha1.ResourceSummary) (int32, int32) {
 	switch key {
-	case "decodeTokensPerSecond":
+	case string(astrav1alpha1.ResourceDecodeTokensPerSec):
 		return preferred.DecodeTokensPerSecond, available.DecodeTokensPerSecond
-	case "prefillTokensPerSecond":
+	case string(astrav1alpha1.ResourcePrefillTokensPerSec):
 		return preferred.PrefillTokensPerSecond, available.PrefillTokensPerSecond
-	case "kvCacheGiB":
+	case string(astrav1alpha1.ResourceKVCacheGiB):
 		return preferred.KVCacheGiB, available.KVCacheGiB
 	default:
 		return 0, 0
@@ -404,12 +374,12 @@ func otherHeadroomScore(key string, preferred, available astrav1alpha1.ResourceS
 		preferred int32
 		available int32
 	}{
-		{name: "gpuCount", preferred: preferred.GPUCount, available: available.GPUCount},
-		{name: "gpuMemoryGiB", preferred: preferred.GPUMemoryGiB, available: available.GPUMemoryGiB},
-		{name: "kvCacheGiB", preferred: preferred.KVCacheGiB, available: available.KVCacheGiB},
-		{name: "prefillTokensPerSecond", preferred: preferred.PrefillTokensPerSecond, available: available.PrefillTokensPerSecond},
-		{name: "decodeTokensPerSecond", preferred: preferred.DecodeTokensPerSecond, available: available.DecodeTokensPerSecond},
-		{name: "totalTokensPerSecond", preferred: preferred.TotalTokensPerSecond, available: available.TotalTokensPerSecond},
+		{name: string(astrav1alpha1.ResourceGPUCount), preferred: preferred.GPUCount, available: available.GPUCount},
+		{name: string(astrav1alpha1.ResourceGPUMemoryGiB), preferred: preferred.GPUMemoryGiB, available: available.GPUMemoryGiB},
+		{name: string(astrav1alpha1.ResourceKVCacheGiB), preferred: preferred.KVCacheGiB, available: available.KVCacheGiB},
+		{name: string(astrav1alpha1.ResourcePrefillTokensPerSec), preferred: preferred.PrefillTokensPerSecond, available: available.PrefillTokensPerSecond},
+		{name: string(astrav1alpha1.ResourceDecodeTokensPerSec), preferred: preferred.DecodeTokensPerSecond, available: available.DecodeTokensPerSecond},
+		{name: string(astrav1alpha1.ResourceTotalTokensPerSecond), preferred: preferred.TotalTokensPerSecond, available: available.TotalTokensPerSecond},
 	}
 
 	var total int64
@@ -426,6 +396,60 @@ func otherHeadroomScore(key string, preferred, available astrav1alpha1.ResourceS
 		return 0
 	}
 	return total / count
+}
+
+func weightedHeadroomScore(key string, preferred, available astrav1alpha1.ResourceSummary) int64 {
+	resources := []struct {
+		name      string
+		preferred int32
+		available int32
+	}{
+		{name: string(astrav1alpha1.ResourceGPUCount), preferred: preferred.GPUCount, available: available.GPUCount},
+		{name: string(astrav1alpha1.ResourceGPUMemoryGiB), preferred: preferred.GPUMemoryGiB, available: available.GPUMemoryGiB},
+		{name: string(astrav1alpha1.ResourceKVCacheGiB), preferred: preferred.KVCacheGiB, available: available.KVCacheGiB},
+		{name: string(astrav1alpha1.ResourcePrefillTokensPerSec), preferred: preferred.PrefillTokensPerSecond, available: available.PrefillTokensPerSecond},
+		{name: string(astrav1alpha1.ResourceDecodeTokensPerSec), preferred: preferred.DecodeTokensPerSecond, available: available.DecodeTokensPerSecond},
+		{name: string(astrav1alpha1.ResourceTotalTokensPerSecond), preferred: preferred.TotalTokensPerSecond, available: available.TotalTokensPerSecond},
+	}
+
+	var weightedSum float64
+	var weightSum float64
+	for _, resource := range resources {
+		if resource.preferred <= 0 {
+			continue
+		}
+
+		weight := resourceHeadroomWeight(key, resource.name)
+		weightedSum += weight * normalizedHeadroom(resource.available, resource.preferred)
+		weightSum += weight
+	}
+
+	if weightSum == 0 {
+		return 0
+	}
+
+	return int64(math.Round(weightedSum / weightSum * float64(MaxNodeScore)))
+}
+
+func resourceHeadroomWeight(key, resourceName string) float64 {
+	if key == string(astrav1alpha1.ResourceBalancedResourceFocus) || key == "" {
+		return 0.4
+	}
+	if resourceName == key {
+		return 0.4
+	}
+	return 0.3
+}
+
+func normalizedHeadroom(available, preferred int32) float64 {
+	if preferred <= 0 || available <= preferred {
+		return 0
+	}
+	headroom := float64(available-preferred) / float64(preferred)
+	if headroom > 1 {
+		return 1
+	}
+	return headroom
 }
 
 func runtimeRiskPenalty(node *astrav1alpha1.AINodeResourceProfile) int64 {

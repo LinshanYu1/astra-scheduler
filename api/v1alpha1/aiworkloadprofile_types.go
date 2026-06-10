@@ -39,7 +39,8 @@ type AIWorkloadProfileSpec struct {
 	// demandShape describes the dominant AI serving pressure.
 	// Examples: decode_heavy, prefill_heavy, kv_heavy, mixed.
 	// +optional
-	DemandShape string `json:"demandShape,omitempty"`
+	// +kubebuilder:validation:Enum=mixed;kv_heavy;prefill_heavy;decode_heavy
+	DemandShape DemandShape `json:"demandShape,omitempty"`
 
 	// timeWindows describe business peak windows that should affect scheduling.
 	// +optional

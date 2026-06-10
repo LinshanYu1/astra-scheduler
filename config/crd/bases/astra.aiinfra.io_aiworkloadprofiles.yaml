@@ -59,6 +59,11 @@ spec:
                 description: |-
                   demandShape describes the dominant AI serving pressure.
                   Examples: decode_heavy, prefill_heavy, kv_heavy, mixed.
+                enum:
+                - mixed
+                - kv_heavy
+                - prefill_heavy
+                - decode_heavy
                 type: string
               policy:
                 description: policy describes which adjustment actions are allowed
