@@ -104,7 +104,7 @@ type WorkloadSLO struct {
 	DeadlineHours int32 `json:"deadlineHours,omitempty"`
 }
 
-// WorkloadResourceRequest describes required and preferred AI resource budgets.
+// WorkloadResourceRequest describes required, preferred, and peak AI resource budgets.
 type WorkloadResourceRequest struct {
 	// required is the minimum resource budget needed to place this workload.
 	// +optional
@@ -113,6 +113,12 @@ type WorkloadResourceRequest struct {
 	// preferred is the target resource budget used for scoring and elastic growth.
 	// +optional
 	Preferred *ResourceSummary `json:"preferred,omitempty"`
+
+	// max is the peak resource budget used for time-window feasibility checks.
+	// It describes how much resource this workload may need during its active
+	// business window. If omitted, preferred is used as the peak budget.
+	// +optional
+	Max *ResourceSummary `json:"max,omitempty"`
 }
 
 // WorkloadPolicy describes whether this workload can borrow or yield resources.

@@ -16,6 +16,30 @@ spec:
     kind: AIWorkloadProfile
     name: live-chat-ai
     namespace: ai
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  timeWindows:
+    - name: evening-peak
+      start: "20:00"
+      end: "02:00"
+      timezone: America/New_York
+  resourceRequest:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 2500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 4000
   nodeName: worker0
   assignedGPU:
     gpuID: gpu-0

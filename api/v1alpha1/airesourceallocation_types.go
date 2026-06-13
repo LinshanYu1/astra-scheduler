@@ -27,6 +27,31 @@ type AIResourceAllocationSpec struct {
 	// +required
 	WorkloadRef KubernetesObjectRef `json:"workloadRef"`
 
+	// workloadType describes whether the workload is online, offline, or hybrid.
+	// It is copied from AIWorkloadProfile so node agents can reason about local mix.
+	// +optional
+	WorkloadType string `json:"workloadType,omitempty"`
+
+	// priority is copied from AIWorkloadProfile for node-local resource ordering.
+	// +optional
+	Priority string `json:"priority,omitempty"`
+
+	// demandShape is copied from AIWorkloadProfile for workload-mix-aware scheduling.
+	// +optional
+	// +kubebuilder:validation:Enum=mixed;kv_heavy;prefill_heavy;decode_heavy
+	DemandShape DemandShape `json:"demandShape,omitempty"`
+
+	// timeWindows is copied from AIWorkloadProfile for time-aware node scoring.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	TimeWindows []TimeWindow `json:"timeWindows,omitempty"`
+
+	// resourceRequest is copied from AIWorkloadProfile so the scheduler and
+	// agent can reason about required/preferred/max budgets after placement.
+	// +optional
+	ResourceRequest *WorkloadResourceRequest `json:"resourceRequest,omitempty"`
+
 	// nodeName is the target Kubernetes node chosen by the scheduler.
 	// +required
 	NodeName string `json:"nodeName"`

@@ -113,11 +113,16 @@ func fillAllocation(
 			Name:       profile.Name,
 			Namespace:  profile.Namespace,
 		},
-		NodeName:       nodeName,
-		Resources:      &resources,
-		AllocationType: allocationType,
-		Actions:        allocationActions(profile),
-		Reason:         reason,
+		WorkloadType:    profile.Spec.WorkloadType,
+		Priority:        profile.Spec.Priority,
+		DemandShape:     profile.Spec.DemandShape,
+		TimeWindows:     profile.Spec.TimeWindows,
+		ResourceRequest: profile.Spec.Resources,
+		NodeName:        nodeName,
+		Resources:       &resources,
+		AllocationType:  allocationType,
+		Actions:         allocationActions(profile),
+		Reason:          reason,
 	}
 }
 

@@ -310,6 +310,16 @@ type NodeAllocationStatus struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mixed;kv_heavy;prefill_heavy;decode_heavy
 	DemandShape DemandShape `json:"demandShape,omitempty"`
+	// timeWindows describes the business windows copied from the workload profile.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	TimeWindows []TimeWindow `json:"timeWindows,omitempty"`
+	// resourceRequest describes the original required/preferred/max budgets copied
+	// from the workload profile. It is separate from Resources, which describes
+	// the concrete budget currently assigned by the scheduler.
+	// +optional
+	ResourceRequest *WorkloadResourceRequest `json:"resourceRequest,omitempty"`
 	// +optional
 	AssignedGPU *AssignedGPU `json:"assignedGPU,omitempty"`
 	// +optional

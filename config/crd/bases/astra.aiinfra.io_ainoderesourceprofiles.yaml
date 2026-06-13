@@ -279,6 +279,84 @@ spec:
                       type: string
                     priority:
                       type: string
+                    resourceRequest:
+                      description: |-
+                        resourceRequest describes the original required/preferred/max budgets copied
+                        from the workload profile. It is separate from Resources, which describes
+                        the concrete budget currently assigned by the scheduler.
+                      properties:
+                        max:
+                          description: |-
+                            max is the peak resource budget used for time-window feasibility checks.
+                            It describes how much resource this workload may need during its active
+                            business window. If omitted, preferred is used as the peak budget.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                        preferred:
+                          description: preferred is the target resource budget used
+                            for scoring and elastic growth.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                        required:
+                          description: required is the minimum resource budget needed
+                            to place this workload.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                      type: object
                     resources:
                       description: ResourceSummary summarizes GPU and runtime resources
                         at node level.
@@ -302,6 +380,36 @@ spec:
                           format: int32
                           type: integer
                       type: object
+                    timeWindows:
+                      description: timeWindows describes the business windows copied
+                        from the workload profile.
+                      items:
+                        description: TimeWindow describes a repeating daily business
+                          window.
+                        properties:
+                          end:
+                            description: end is a local wall-clock time in HH:MM format.
+                              It may be earlier than start for overnight windows.
+                            type: string
+                          name:
+                            type: string
+                          start:
+                            description: start is a local wall-clock time in HH:MM
+                              format.
+                            type: string
+                          timezone:
+                            description: timezone is an IANA timezone name, such as
+                              America/New_York.
+                            type: string
+                        required:
+                        - end
+                        - name
+                        - start
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
                     workloadName:
                       type: string
                     workloadType:

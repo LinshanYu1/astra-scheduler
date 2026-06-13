@@ -34,6 +34,11 @@ spec:
       gpuMemoryGiB: 20
       kvCacheGiB: 32
       decodeTokensPerSecond: 2500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 4000
   policy:
     allowBorrowing: false
     allowReclaimFromLowerPriority: true

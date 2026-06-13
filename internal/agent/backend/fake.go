@@ -80,14 +80,18 @@ func nodeAllocationStatuses(allocations []astrav1alpha1.AIResourceAllocation) []
 	for _, allocation := range allocations {
 		workloadName := allocation.Spec.WorkloadRef.Name
 		statuses = append(statuses, astrav1alpha1.NodeAllocationStatus{
-			Name:         allocation.Name,
-			Namespace:    allocation.Namespace,
-			WorkloadName: workloadName,
-			Priority:     allocation.Labels["astra.aiinfra.io/priority"],
-			AssignedGPU:  allocation.Spec.AssignedGPU,
-			Resources:    allocation.Spec.Resources,
-			Actions:      allocation.Spec.Actions,
-			Phase:        allocation.Status.Phase,
+			Name:            allocation.Name,
+			Namespace:       allocation.Namespace,
+			WorkloadName:    workloadName,
+			WorkloadType:    allocation.Spec.WorkloadType,
+			Priority:        allocation.Spec.Priority,
+			DemandShape:     allocation.Spec.DemandShape,
+			TimeWindows:     allocation.Spec.TimeWindows,
+			ResourceRequest: allocation.Spec.ResourceRequest,
+			AssignedGPU:     allocation.Spec.AssignedGPU,
+			Resources:       allocation.Spec.Resources,
+			Actions:         allocation.Spec.Actions,
+			Phase:           allocation.Status.Phase,
 		})
 	}
 	return statuses

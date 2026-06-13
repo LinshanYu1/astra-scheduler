@@ -86,13 +86,103 @@ spec:
                   migSliceID:
                     type: string
                 type: object
+              demandShape:
+                description: demandShape is copied from AIWorkloadProfile for workload-mix-aware
+                  scheduling.
+                enum:
+                - mixed
+                - kv_heavy
+                - prefill_heavy
+                - decode_heavy
+                type: string
               nodeName:
                 description: nodeName is the target Kubernetes node chosen by the
                   scheduler.
                 type: string
+              priority:
+                description: priority is copied from AIWorkloadProfile for node-local
+                  resource ordering.
+                type: string
               reason:
                 description: reason is a human-readable explanation from the scheduler.
                 type: string
+              resourceRequest:
+                description: |-
+                  resourceRequest is copied from AIWorkloadProfile so the scheduler and
+                  agent can reason about required/preferred/max budgets after placement.
+                properties:
+                  max:
+                    description: |-
+                      max is the peak resource budget used for time-window feasibility checks.
+                      It describes how much resource this workload may need during its active
+                      business window. If omitted, preferred is used as the peak budget.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                  preferred:
+                    description: preferred is the target resource budget used for
+                      scoring and elastic growth.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                  required:
+                    description: required is the minimum resource budget needed to
+                      place this workload.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               resources:
                 description: resources describes the concrete resource budget assigned
                   by the scheduler.
@@ -116,6 +206,33 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              timeWindows:
+                description: timeWindows is copied from AIWorkloadProfile for time-aware
+                  node scoring.
+                items:
+                  description: TimeWindow describes a repeating daily business window.
+                  properties:
+                    end:
+                      description: end is a local wall-clock time in HH:MM format.
+                        It may be earlier than start for overnight windows.
+                      type: string
+                    name:
+                      type: string
+                    start:
+                      description: start is a local wall-clock time in HH:MM format.
+                      type: string
+                    timezone:
+                      description: timezone is an IANA timezone name, such as America/New_York.
+                      type: string
+                  required:
+                  - end
+                  - name
+                  - start
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               workloadRef:
                 description: |-
                   workloadRef points to the AIWorkloadProfile that owns this allocation.
@@ -136,6 +253,11 @@ spec:
                 - kind
                 - name
                 type: object
+              workloadType:
+                description: |-
+                  workloadType describes whether the workload is online, offline, or hybrid.
+                  It is copied from AIWorkloadProfile so node agents can reason about local mix.
+                type: string
             required:
             - nodeName
             - workloadRef

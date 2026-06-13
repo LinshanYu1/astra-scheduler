@@ -3,6 +3,7 @@ package policy
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	astrav1alpha1 "github.com/linshanyu/astra-scheduler/api/v1alpha1"
@@ -29,6 +30,10 @@ type NodeScoreDetail struct {
 	KeyResourceHeadroom         int32
 	OtherHeadroomScore          int64
 	WeightedHeadroomScore       int64
+	TimeWindowMultiplier        float64
+	TimeWindowReason            string
+	MixBalanceMultiplier        float64
+	MixBalanceReason            string
 	RuntimeRiskPenalty          int64
 	Reason                      string
 }
@@ -40,48 +45,7 @@ func NewSimplePolicy() *SimplePolicy {
 }
 
 func (p *SimplePolicy) Filter(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) FilterDecision {
-	if profile == nil {
-		return FilterDecision{Allowed: false, Reason: "missing AIWorkloadProfile"}
-	}
-	if node == nil {
-		return FilterDecision{Allowed: false, Reason: "missing AINodeResourceProfile"}
-	}
-	if !nodeIsReady(node) {
-		return FilterDecision{Allowed: false, Reason: fmt.Sprintf("node AI resource profile is not ready: phase=%s", node.Status.Phase)}
-	}
-	if node.Status.Available == nil {
-		return FilterDecision{Allowed: false, Reason: "node has no available resource summary"}
-	}
-
-	required := requiredResources(profile)
-	available := node.Status.Available
-	if decision := validateRuntimeHardConstraints(required, profile, node); !decision.Allowed {
-		return decision
-	}
-	if decision := validateCapabilityHardConstraints(profile, node); !decision.Allowed {
-		return decision
-	}
-
-	if required.GPUCount > available.GPUCount {
-		return reject("gpuCount", required.GPUCount, available.GPUCount)
-	}
-	if required.GPUMemoryGiB > available.GPUMemoryGiB {
-		return reject("gpuMemoryGiB", required.GPUMemoryGiB, available.GPUMemoryGiB)
-	}
-	if required.KVCacheGiB > available.KVCacheGiB {
-		return reject("kvCacheGiB", required.KVCacheGiB, available.KVCacheGiB)
-	}
-	if required.PrefillTokensPerSecond > available.PrefillTokensPerSecond {
-		return reject("prefillTokensPerSecond", required.PrefillTokensPerSecond, available.PrefillTokensPerSecond)
-	}
-	if required.DecodeTokensPerSecond > available.DecodeTokensPerSecond {
-		return reject("decodeTokensPerSecond", required.DecodeTokensPerSecond, available.DecodeTokensPerSecond)
-	}
-	if required.TotalTokensPerSecond > available.TotalTokensPerSecond {
-		return reject("totalTokensPerSecond", required.TotalTokensPerSecond, available.TotalTokensPerSecond)
-	}
-
-	return FilterDecision{Allowed: true, Reason: "required AI resources fit node availability"}
+	return GetFilterConstraints().RunAllConstraints(profile, node)
 }
 
 func nodeIsReady(node *astrav1alpha1.AINodeResourceProfile) bool {
@@ -91,55 +55,19 @@ func nodeIsReady(node *astrav1alpha1.AINodeResourceProfile) bool {
 	return node.Status.Phase == "" || strings.EqualFold(node.Status.Phase, "Ready")
 }
 
-func validateRuntimeHardConstraints(
-	required astrav1alpha1.ResourceSummary,
-	profile *astrav1alpha1.AIWorkloadProfile,
-	node *astrav1alpha1.AINodeResourceProfile,
-) FilterDecision {
-	supports := runtimeSupports(node)
-	if requiresKVCache(required, profile) && !supports.KVCache {
-		return FilterDecision{Allowed: false, Reason: "node runtime does not support KV cache"}
-	}
-	if requiresTokenThroughput(required, profile) && !supports.TokenThroughput {
-		return FilterDecision{Allowed: false, Reason: "node runtime does not support token throughput control"}
-	}
-	return FilterDecision{Allowed: true, Reason: "runtime hard constraints satisfied"}
-}
-
-func validateCapabilityHardConstraints(
-	profile *astrav1alpha1.AIWorkloadProfile,
-	node *astrav1alpha1.AINodeResourceProfile,
-) FilterDecision {
-	if profile == nil || profile.Spec.Policy == nil {
-		return FilterDecision{Allowed: true, Reason: "no workload policy hard constraints"}
-	}
-	capabilities := nodeCapabilities(node)
-	policy := profile.Spec.Policy
-
-	if policy.AllowBorrowing && !capabilities.Borrowing {
-		return FilterDecision{Allowed: false, Reason: "node does not support resource borrowing"}
-	}
-	if policy.AllowReclaimFromLowerPriority && !capabilities.Reclaim {
-		return FilterDecision{Allowed: false, Reason: "node does not support resource reclaim"}
-	}
-	if policy.Throttleable && !capabilities.Throttling {
-		return FilterDecision{Allowed: false, Reason: "node does not support throttling"}
-	}
-	if policy.Pauseable && !capabilities.PauseResume {
-		return FilterDecision{Allowed: false, Reason: "node does not support pause/resume"}
-	}
-	if policy.Evictable && !capabilities.Eviction {
-		return FilterDecision{Allowed: false, Reason: "node does not support eviction"}
-	}
-
-	return FilterDecision{Allowed: true, Reason: "node capability hard constraints satisfied"}
-}
-
 func requiresKVCache(required astrav1alpha1.ResourceSummary, profile *astrav1alpha1.AIWorkloadProfile) bool {
+	if profile == nil {
+		return required.KVCacheGiB > 0
+	}
 	return required.KVCacheGiB > 0 || profile.Spec.DemandShape == astrav1alpha1.DemandShapeKVHeavy
 }
 
 func requiresTokenThroughput(required astrav1alpha1.ResourceSummary, profile *astrav1alpha1.AIWorkloadProfile) bool {
+	if profile == nil {
+		return required.PrefillTokensPerSecond > 0 ||
+			required.DecodeTokensPerSecond > 0 ||
+			required.TotalTokensPerSecond > 0
+	}
 	return required.PrefillTokensPerSecond > 0 ||
 		required.DecodeTokensPerSecond > 0 ||
 		required.TotalTokensPerSecond > 0 ||
@@ -170,12 +98,6 @@ func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, nod
 		}
 	}
 
-	filter := p.Filter(profile, node)
-	if !filter.Allowed {
-		detail.Reason = filter.Reason
-		return detail
-	}
-
 	available := *node.Status.Available
 	preferred := preferredResources(profile)
 	detail.PreferredMatched, detail.PreferredTotal = preferredMatchCount(preferred, available)
@@ -184,9 +106,11 @@ func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, nod
 	detail.KeyResourceHeadroom = keyResourceHeadroom(detail.KeyResource, preferred, available)
 	detail.OtherHeadroomScore = otherHeadroomScore(detail.KeyResource, preferred, available)
 	detail.WeightedHeadroomScore = weightedHeadroomScore(detail.KeyResource, preferred, available)
+	detail.TimeWindowMultiplier, detail.TimeWindowReason = timeWindowMultiplier(profile, node)
+	detail.MixBalanceMultiplier, detail.MixBalanceReason = mixBalanceMultiplier(profile, node)
 	detail.RuntimeRiskPenalty = runtimeRiskPenalty(node)
 	detail.Reason = fmt.Sprintf(
-		"preferredMatched=%d/%d keyResource=%s keyPreferredMatched=%t keyHeadroom=%d otherHeadroom=%d weightedHeadroom=%d runtimeRiskPenalty=%d",
+		"preferredMatched=%d/%d keyResource=%s keyPreferredMatched=%t keyHeadroom=%d otherHeadroom=%d weightedHeadroom=%d timeMultiplier=%.2f timeReason=%s mixMultiplier=%.2f mixReason=%s runtimeRiskPenalty=%d",
 		detail.PreferredMatched,
 		detail.PreferredTotal,
 		detail.KeyResource,
@@ -194,6 +118,10 @@ func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, nod
 		detail.KeyResourceHeadroom,
 		detail.OtherHeadroomScore,
 		detail.WeightedHeadroomScore,
+		detail.TimeWindowMultiplier,
+		detail.TimeWindowReason,
+		detail.MixBalanceMultiplier,
+		detail.MixBalanceReason,
 		detail.RuntimeRiskPenalty,
 	)
 
@@ -214,11 +142,13 @@ func (p *SimplePolicy) NormalizeScoreDetails(details map[string]NodeScoreDetail)
 	}
 
 	for nodeName, detail := range details {
-		score := detail.WeightedHeadroomScore
+		score := applyMultiplier(detail.WeightedHeadroomScore, detail.TimeWindowMultiplier)
+		score = applyMultiplier(score, detail.MixBalanceMultiplier)
 		reasonParts := []string{
 			detail.Reason,
 			fmt.Sprintf("maxPreferredMatched=%d", maxPreferredMatched),
 			fmt.Sprintf("weightedHeadroomScore=%d", detail.WeightedHeadroomScore),
+			fmt.Sprintf("timeAndMixAdjustedScore=%d", score),
 		}
 
 		if detail.PreferredMatched < maxPreferredMatched {
@@ -429,6 +359,238 @@ func weightedHeadroomScore(key string, preferred, available astrav1alpha1.Resour
 	}
 
 	return int64(math.Round(weightedSum / weightSum * float64(MaxNodeScore)))
+}
+
+func timeWindowMultiplier(
+	profile *astrav1alpha1.AIWorkloadProfile,
+	node *astrav1alpha1.AINodeResourceProfile,
+) (float64, string) {
+	if profile == nil || node == nil {
+		return 1.0, "missing profile or node"
+	}
+	if len(profile.Spec.TimeWindows) == 0 {
+		return 1.0, "workload has no time window"
+	}
+	if len(node.Status.Allocations) == 0 {
+		return 1.02, "node has no existing workload window"
+	}
+
+	comparedWindowCount := 0
+	overlapCount := 0
+	manageableOverlapCount := 0
+	for _, allocation := range node.Status.Allocations {
+		if len(allocation.TimeWindows) == 0 {
+			continue
+		}
+		comparedWindowCount++
+		if !timeWindowsOverlap(profile.Spec.TimeWindows, allocation.TimeWindows) {
+			continue
+		}
+
+		overlapCount++
+		if canCurrentWorkloadReclaimFrom(profile, allocation) {
+			manageableOverlapCount++
+		}
+	}
+
+	if comparedWindowCount == 0 {
+		return 1.02, "node has no comparable existing workload window"
+	}
+	if overlapCount == 0 {
+		return 1.05, "time windows are staggered with existing allocations"
+	}
+	if overlapCount == manageableOverlapCount {
+		return 1.02, fmt.Sprintf("time window overlaps only with lower-priority delay-tolerant workloads: overlap=%d", overlapCount)
+	}
+	return 0.95, fmt.Sprintf("time window overlaps with competing online or same-priority workloads: overlap=%d manageable=%d", overlapCount, manageableOverlapCount)
+}
+
+func timeWindowsOverlap(left, right []astrav1alpha1.TimeWindow) bool {
+	for _, leftWindow := range left {
+		leftIntervals, ok := timeWindowIntervals(leftWindow)
+		if !ok {
+			continue
+		}
+		for _, rightWindow := range right {
+			rightIntervals, ok := timeWindowIntervals(rightWindow)
+			if !ok {
+				continue
+			}
+			if intervalsOverlap(leftIntervals, rightIntervals) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type minuteInterval struct {
+	start int
+	end   int
+}
+
+func timeWindowIntervals(window astrav1alpha1.TimeWindow) ([]minuteInterval, bool) {
+	start, ok := parseHHMM(window.Start)
+	if !ok {
+		return nil, false
+	}
+	end, ok := parseHHMM(window.End)
+	if !ok {
+		return nil, false
+	}
+	if start == end {
+		return []minuteInterval{{start: 0, end: 24 * 60}}, true
+	}
+	if start < end {
+		return []minuteInterval{{start: start, end: end}}, true
+	}
+	return []minuteInterval{
+		{start: start, end: 24 * 60},
+		{start: 0, end: end},
+	}, true
+}
+
+func parseHHMM(value string) (int, bool) {
+	parts := strings.Split(value, ":")
+	if len(parts) != 2 {
+		return 0, false
+	}
+	hour, err := parsePositiveInt(parts[0])
+	if err != nil || hour < 0 || hour > 23 {
+		return 0, false
+	}
+	minute, err := parsePositiveInt(parts[1])
+	if err != nil || minute < 0 || minute > 59 {
+		return 0, false
+	}
+	return hour*60 + minute, true
+}
+
+func parsePositiveInt(value string) (int, error) {
+	return strconv.Atoi(value)
+}
+
+func intervalsOverlap(left, right []minuteInterval) bool {
+	for _, leftInterval := range left {
+		for _, rightInterval := range right {
+			if leftInterval.start < rightInterval.end && rightInterval.start < leftInterval.end {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func canCurrentWorkloadReclaimFrom(profile *astrav1alpha1.AIWorkloadProfile, allocation astrav1alpha1.NodeAllocationStatus) bool {
+	if profile == nil {
+		return false
+	}
+	if !isOnlineWorkload(profile.Spec.WorkloadType) || !higherPriority(profile.Spec.Priority, allocation.Priority) {
+		return false
+	}
+	return isDelayTolerantWorkload(allocation.WorkloadType) || allocation.Actions != nil && (allocation.Actions.Throttleable || allocation.Actions.Pauseable || allocation.Actions.Evictable)
+}
+
+func isOnlineWorkload(workloadType string) bool {
+	return strings.EqualFold(workloadType, "online") || strings.EqualFold(workloadType, "hybrid")
+}
+
+func isDelayTolerantWorkload(workloadType string) bool {
+	return strings.EqualFold(workloadType, "offline") || strings.EqualFold(workloadType, "batch")
+}
+
+func higherPriority(left, right string) bool {
+	return priorityRank(left) > priorityRank(right)
+}
+
+func priorityRank(priority string) int {
+	switch strings.ToLower(priority) {
+	case "high":
+		return 3
+	case "medium":
+		return 2
+	case "low":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func mixBalanceMultiplier(
+	profile *astrav1alpha1.AIWorkloadProfile,
+	node *astrav1alpha1.AINodeResourceProfile,
+) (float64, string) {
+	if profile == nil || node == nil {
+		return 1.0, "missing profile or node"
+	}
+
+	currentShape := normalizedDemandShape(profile.Spec.DemandShape)
+	if currentShape == astrav1alpha1.DemandShapeMixed {
+		return 1.0, "mixed workload has no focused resource shape"
+	}
+
+	counts := demandShapeCounts(node.Status.Allocations)
+	maxCount := maxDemandShapeCount(counts)
+	currentCount := counts[currentShape]
+	if currentCount < maxCount {
+		return 1.05, fmt.Sprintf("underrepresented demandShape=%s count=%d max=%d", currentShape, currentCount, maxCount)
+	}
+
+	return 1.0, fmt.Sprintf("demandShape=%s count=%d max=%d", currentShape, currentCount, maxCount)
+}
+
+func normalizedDemandShape(shape astrav1alpha1.DemandShape) astrav1alpha1.DemandShape {
+	switch shape {
+	case astrav1alpha1.DemandShapeDecodeHeavy,
+		astrav1alpha1.DemandShapePrefillHeavy,
+		astrav1alpha1.DemandShapeKVHeavy,
+		astrav1alpha1.DemandShapeMixed:
+		return shape
+	default:
+		return astrav1alpha1.DemandShapeMixed
+	}
+}
+
+func demandShapeCounts(allocations []astrav1alpha1.NodeAllocationStatus) map[astrav1alpha1.DemandShape]int {
+	counts := map[astrav1alpha1.DemandShape]int{
+		astrav1alpha1.DemandShapeDecodeHeavy:  0,
+		astrav1alpha1.DemandShapePrefillHeavy: 0,
+		astrav1alpha1.DemandShapeKVHeavy:      0,
+	}
+
+	for _, allocation := range allocations {
+		switch normalizedDemandShape(allocation.DemandShape) {
+		case astrav1alpha1.DemandShapeDecodeHeavy:
+			counts[astrav1alpha1.DemandShapeDecodeHeavy]++
+		case astrav1alpha1.DemandShapePrefillHeavy:
+			counts[astrav1alpha1.DemandShapePrefillHeavy]++
+		case astrav1alpha1.DemandShapeKVHeavy:
+			counts[astrav1alpha1.DemandShapeKVHeavy]++
+		default:
+			counts[astrav1alpha1.DemandShapeDecodeHeavy]++
+			counts[astrav1alpha1.DemandShapePrefillHeavy]++
+			counts[astrav1alpha1.DemandShapeKVHeavy]++
+		}
+	}
+
+	return counts
+}
+
+func maxDemandShapeCount(counts map[astrav1alpha1.DemandShape]int) int {
+	maxCount := 0
+	for _, count := range counts {
+		if count > maxCount {
+			maxCount = count
+		}
+	}
+	return maxCount
+}
+
+func applyMultiplier(score int64, multiplier float64) int64 {
+	if multiplier <= 0 {
+		multiplier = 1.0
+	}
+	return int64(math.Round(float64(score) * multiplier))
 }
 
 func resourceHeadroomWeight(key, resourceName string) float64 {

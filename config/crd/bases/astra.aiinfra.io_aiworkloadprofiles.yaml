@@ -99,6 +99,31 @@ spec:
                 description: resources describes hard required resources and soft
                   preferred resources.
                 properties:
+                  max:
+                    description: |-
+                      max is the peak resource budget used for time-window feasibility checks.
+                      It describes how much resource this workload may need during its active
+                      business window. If omitted, preferred is used as the peak budget.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
                   preferred:
                     description: preferred is the target resource budget used for
                       scoring and elastic growth.

@@ -171,6 +171,210 @@ func TestDemandShapeChangesBestNodeForSameNodeResources(t *testing.T) {
 	}
 }
 
+func TestScoreDetailAppliesSmallMixBonusForUnderrepresentedDemandShape(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeKVHeavy)
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:               1,
+		GPUMemoryGiB:           30,
+		KVCacheGiB:             48,
+		PrefillTokensPerSecond: 3000,
+		DecodeTokensPerSecond:  4000,
+	})
+	node.Status.Allocations = []astrav1alpha1.NodeAllocationStatus{
+		{Name: "decode-1", DemandShape: astrav1alpha1.DemandShapeDecodeHeavy},
+		{Name: "decode-2", DemandShape: astrav1alpha1.DemandShapeDecodeHeavy},
+		{Name: "decode-3", DemandShape: astrav1alpha1.DemandShapeDecodeHeavy},
+		{Name: "prefill-1", DemandShape: astrav1alpha1.DemandShapePrefillHeavy},
+		{Name: "prefill-2", DemandShape: astrav1alpha1.DemandShapePrefillHeavy},
+		{Name: "kv-1", DemandShape: astrav1alpha1.DemandShapeKVHeavy},
+		{Name: "kv-2", DemandShape: astrav1alpha1.DemandShapeKVHeavy},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.MixBalanceMultiplier != 1.05 {
+		t.Fatalf("expected underrepresented kv-heavy workload to get 1.05 mix multiplier, got %.2f", detail.MixBalanceMultiplier)
+	}
+
+	decisions := p.NormalizeScoreDetails(map[string]NodeScoreDetail{"node-a": detail})
+	if decisions["node-a"].Score <= detail.WeightedHeadroomScore {
+		t.Fatalf("expected mix multiplier to slightly increase score, weighted=%d final=%d", detail.WeightedHeadroomScore, decisions["node-a"].Score)
+	}
+}
+
+func TestScoreDetailDoesNotApplyMixBonusForMixedWorkload(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeMixed)
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:               1,
+		GPUMemoryGiB:           20,
+		KVCacheGiB:             32,
+		PrefillTokensPerSecond: 2000,
+		DecodeTokensPerSecond:  2500,
+	})
+	node.Status.Allocations = []astrav1alpha1.NodeAllocationStatus{
+		{Name: "decode-1", DemandShape: astrav1alpha1.DemandShapeDecodeHeavy},
+		{Name: "prefill-1", DemandShape: astrav1alpha1.DemandShapePrefillHeavy},
+		{Name: "kv-1", DemandShape: astrav1alpha1.DemandShapeKVHeavy},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.MixBalanceMultiplier != 1.0 {
+		t.Fatalf("expected mixed workload to get no mix bonus, got %.2f", detail.MixBalanceMultiplier)
+	}
+}
+
+func TestMixedExistingAllocationCountsForEveryDemandShape(t *testing.T) {
+	counts := demandShapeCounts([]astrav1alpha1.NodeAllocationStatus{
+		{Name: "mixed-1", DemandShape: astrav1alpha1.DemandShapeMixed},
+		{Name: "decode-1", DemandShape: astrav1alpha1.DemandShapeDecodeHeavy},
+	})
+
+	if counts[astrav1alpha1.DemandShapeDecodeHeavy] != 2 {
+		t.Fatalf("expected mixed allocation to count for decode plus explicit decode, got %d", counts[astrav1alpha1.DemandShapeDecodeHeavy])
+	}
+	if counts[astrav1alpha1.DemandShapePrefillHeavy] != 1 {
+		t.Fatalf("expected mixed allocation to count for prefill, got %d", counts[astrav1alpha1.DemandShapePrefillHeavy])
+	}
+	if counts[astrav1alpha1.DemandShapeKVHeavy] != 1 {
+		t.Fatalf("expected mixed allocation to count for kv, got %d", counts[astrav1alpha1.DemandShapeKVHeavy])
+	}
+}
+
+func TestScoreDetailAppliesTimeWindowBonusWhenWindowsAreStaggered(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeDecodeHeavy)
+	profile.Spec.WorkloadType = "online"
+	profile.Spec.Priority = "high"
+	profile.Spec.TimeWindows = []astrav1alpha1.TimeWindow{
+		{Name: "evening-peak", Start: "20:00", End: "02:00"},
+	}
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:               1,
+		GPUMemoryGiB:           30,
+		KVCacheGiB:             48,
+		PrefillTokensPerSecond: 3000,
+		DecodeTokensPerSecond:  4000,
+	})
+	node.Status.Allocations = []astrav1alpha1.NodeAllocationStatus{
+		{
+			Name:         "office-agent",
+			WorkloadType: "online",
+			Priority:     "high",
+			TimeWindows: []astrav1alpha1.TimeWindow{
+				{Name: "business-hours", Start: "09:00", End: "17:00"},
+			},
+		},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.TimeWindowMultiplier != 1.05 {
+		t.Fatalf("expected staggered windows to get 1.05 multiplier, got %.2f reason=%s", detail.TimeWindowMultiplier, detail.TimeWindowReason)
+	}
+}
+
+func TestScoreDetailPenalizesCompetingTimeWindowOverlap(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeDecodeHeavy)
+	profile.Spec.WorkloadType = "online"
+	profile.Spec.Priority = "high"
+	profile.Spec.TimeWindows = []astrav1alpha1.TimeWindow{
+		{Name: "evening-peak", Start: "20:00", End: "02:00"},
+	}
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:               1,
+		GPUMemoryGiB:           30,
+		KVCacheGiB:             48,
+		PrefillTokensPerSecond: 3000,
+		DecodeTokensPerSecond:  4000,
+	})
+	node.Status.Allocations = []astrav1alpha1.NodeAllocationStatus{
+		{
+			Name:         "live-moderation",
+			WorkloadType: "online",
+			Priority:     "high",
+			TimeWindows: []astrav1alpha1.TimeWindow{
+				{Name: "evening-peak", Start: "21:00", End: "01:00"},
+			},
+		},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.TimeWindowMultiplier != 0.95 {
+		t.Fatalf("expected competing overlap to get 0.95 multiplier, got %.2f reason=%s", detail.TimeWindowMultiplier, detail.TimeWindowReason)
+	}
+}
+
+func TestScoreDetailAllowsOverlapWithLowerPriorityDelayTolerantWorkload(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeDecodeHeavy)
+	profile.Spec.WorkloadType = "online"
+	profile.Spec.Priority = "high"
+	profile.Spec.TimeWindows = []astrav1alpha1.TimeWindow{
+		{Name: "evening-peak", Start: "20:00", End: "02:00"},
+	}
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:               1,
+		GPUMemoryGiB:           30,
+		KVCacheGiB:             48,
+		PrefillTokensPerSecond: 3000,
+		DecodeTokensPerSecond:  4000,
+	})
+	node.Status.Allocations = []astrav1alpha1.NodeAllocationStatus{
+		{
+			Name:         "offline-embedding",
+			WorkloadType: "offline",
+			Priority:     "low",
+			TimeWindows: []astrav1alpha1.TimeWindow{
+				{Name: "background", Start: "00:00", End: "23:59"},
+			},
+			Actions: &astrav1alpha1.AllocationActions{Throttleable: true, Pauseable: true},
+		},
+	}
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.TimeWindowMultiplier != 1.02 {
+		t.Fatalf("expected overlap with lower-priority delay-tolerant workload to get 1.02 multiplier, got %.2f reason=%s", detail.TimeWindowMultiplier, detail.TimeWindowReason)
+	}
+}
+
+func TestFilterAllowsStaggeredOnlinePeakEnvelopes(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := timeWindowEnvelopeProfile("workload-a", "20:00", "08:00", 10, 30)
+	node := timeWindowEnvelopeNode(
+		45,
+		timeWindowEnvelopeAllocation("workload-b", "12:00", "19:00", 10, 35),
+	)
+
+	decision := p.Filter(profile, node)
+	if !decision.Allowed {
+		t.Fatalf("expected staggered peak windows to fit, got %q", decision.Reason)
+	}
+}
+
+func TestFilterRejectsOverlappingOnlinePeakEnvelopes(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := timeWindowEnvelopeProfile("workload-a", "20:00", "08:00", 10, 30)
+	node := timeWindowEnvelopeNode(
+		45,
+		timeWindowEnvelopeAllocation("workload-b", "21:00", "01:00", 10, 35),
+	)
+
+	decision := p.Filter(profile, node)
+	if decision.Allowed {
+		t.Fatalf("expected overlapping peak windows to be rejected")
+	}
+}
+
+func TestTimeWindowsOverlapHandlesOvernightWindows(t *testing.T) {
+	left := []astrav1alpha1.TimeWindow{{Name: "evening", Start: "20:00", End: "02:00"}}
+	right := []astrav1alpha1.TimeWindow{{Name: "late-night", Start: "01:00", End: "03:00"}}
+
+	if !timeWindowsOverlap(left, right) {
+		t.Fatalf("expected overnight window to overlap with late-night window")
+	}
+}
+
 func TestAllocationResourcesPreferPreferredWhenAvailable(t *testing.T) {
 	p := NewSimplePolicy()
 	profile := &astrav1alpha1.AIWorkloadProfile{
@@ -437,6 +641,46 @@ func scoreTestNode(name string, sloRisk string, available astrav1alpha1.Resource
 		Pressure: &astrav1alpha1.RuntimePressure{SLORisk: sloRisk},
 	}
 	return node
+}
+
+func timeWindowEnvelopeProfile(name, start, end string, requiredDecode, maxDecode int32) *astrav1alpha1.AIWorkloadProfile {
+	return &astrav1alpha1.AIWorkloadProfile{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: astrav1alpha1.AIWorkloadProfileSpec{
+			WorkloadType: "online",
+			Priority:     "high",
+			DemandShape:  astrav1alpha1.DemandShapeDecodeHeavy,
+			TimeWindows:  []astrav1alpha1.TimeWindow{{Name: "peak", Start: start, End: end}},
+			Resources: &astrav1alpha1.WorkloadResourceRequest{
+				Required: &astrav1alpha1.ResourceSummary{DecodeTokensPerSecond: requiredDecode},
+				Max:      &astrav1alpha1.ResourceSummary{DecodeTokensPerSecond: maxDecode},
+			},
+		},
+	}
+}
+
+func timeWindowEnvelopeNode(capacityDecode int32, allocations ...astrav1alpha1.NodeAllocationStatus) *astrav1alpha1.AINodeResourceProfile {
+	capacity := astrav1alpha1.ResourceSummary{DecodeTokensPerSecond: capacityDecode}
+	node := readyNodeWithAvailable(capacity)
+	node.Spec.NodeName = "node-a"
+	node.Spec.Runtime = tokenAndKVRuntime()
+	node.Status.Allocatable = &capacity
+	node.Status.Allocations = allocations
+	return node
+}
+
+func timeWindowEnvelopeAllocation(name, start, end string, requiredDecode, maxDecode int32) astrav1alpha1.NodeAllocationStatus {
+	return astrav1alpha1.NodeAllocationStatus{
+		Name:         name,
+		WorkloadType: "online",
+		Priority:     "high",
+		DemandShape:  astrav1alpha1.DemandShapeDecodeHeavy,
+		TimeWindows:  []astrav1alpha1.TimeWindow{{Name: "peak", Start: start, End: end}},
+		ResourceRequest: &astrav1alpha1.WorkloadResourceRequest{
+			Required: &astrav1alpha1.ResourceSummary{DecodeTokensPerSecond: requiredDecode},
+			Max:      &astrav1alpha1.ResourceSummary{DecodeTokensPerSecond: maxDecode},
+		},
+	}
 }
 
 func scoreDetailsForNodes(
