@@ -1,0 +1,139 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: window-office-agent
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: window-office-agent
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: kv_heavy
+  timeWindows:
+    - name: office-peak
+      start: "09:00"
+      end: "17:00"
+      timezone: UTC
+  slo:
+    ttftP95Ms: 900
+    latencyP99Ms: 3500
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 800
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 1600
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 2500
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: window-live-moderation
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: window-live-moderation
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  timeWindows:
+    - name: evening-peak
+      start: "20:00"
+      end: "02:00"
+      timezone: UTC
+  slo:
+    ttftP95Ms: 700
+    latencyP99Ms: 2500
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 2500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 4200
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: window-office-agent
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: window-office-agent
+  template:
+    metadata:
+      labels:
+        app: window-office-agent
+      annotations:
+        astra.aiinfra.io/workload-profile: window-office-agent
+    spec:
+      schedulerName: astra-scheduler
+      nodeSelector:
+        kubernetes.io/hostname: worker0
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: window-live-moderation
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: window-live-moderation
+  template:
+    metadata:
+      labels:
+        app: window-live-moderation
+      annotations:
+        astra.aiinfra.io/workload-profile: window-live-moderation
+    spec:
+      schedulerName: astra-scheduler
+      nodeSelector:
+        kubernetes.io/hostname: worker0
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent

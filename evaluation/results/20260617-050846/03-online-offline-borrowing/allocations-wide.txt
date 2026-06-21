@@ -1,0 +1,3 @@
+NAME                                             WORKLOAD               NAMESPACE    NODE      TYPE        PHASE     AGE
+eval-batch-embedding-5fc67bd8cd-bcsgs-34aa1081   eval-batch-embedding   astra-eval   worker1   preferred   Applied   35s
+eval-chat-service-65cf4f5c6-9f94j-b13292c5       eval-chat-service      astra-eval   worker0   preferred   Applied   35s

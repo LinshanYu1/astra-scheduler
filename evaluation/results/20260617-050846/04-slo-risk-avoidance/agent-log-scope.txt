@@ -1,0 +1,1 @@
+Only the master0 agent log was collected in this run. Remote agent health is evidenced by Applied allocations.

@@ -1,0 +1,7 @@
+namespace/astra-scheduler-system unchanged
+namespace/astra-eval unchanged
+configmap/astra-scheduler-fake-node-resources unchanged
+ainoderesourceprofile.astra.aiinfra.io/master0 unchanged
+ainoderesourceprofile.astra.aiinfra.io/master1 unchanged
+ainoderesourceprofile.astra.aiinfra.io/worker0 unchanged
+ainoderesourceprofile.astra.aiinfra.io/worker1 unchanged

@@ -1,0 +1,2 @@
+NAME                                                 WORKLOAD                   NAMESPACE    NODE      TYPE        PHASE     AGE
+eval-risk-sensitive-chat-7d45bb7568-xdgbn-906dfd31   eval-risk-sensitive-chat   astra-eval   master0   preferred   Applied   35s

@@ -1,0 +1,6 @@
+aiworkloadprofile.astra.aiinfra.io "eval-chat-service" deleted from astra-eval namespace
+aiworkloadprofile.astra.aiinfra.io "eval-batch-embedding" deleted from astra-eval namespace
+deployment.apps "eval-chat-service" deleted from astra-eval namespace
+deployment.apps "eval-batch-embedding" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-batch-embedding-5fc67bd8cd-bcsgs-34aa1081" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-chat-service-65cf4f5c6-9f94j-b13292c5" deleted from astra-eval namespace

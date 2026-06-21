@@ -1,0 +1,127 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-live-moderation
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-live-moderation
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  timeWindows:
+    - name: active-eval-window
+      start: "00:00"
+      end: "23:59"
+      timezone: UTC
+  slo:
+    ttftP95Ms: 700
+    latencyP99Ms: 2500
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 12
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 24
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 2500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 36
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 4200
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-office-agent
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-office-agent
+    namespace: astra-eval
+  workloadType: online
+  priority: medium
+  demandShape: kv_heavy
+  slo:
+    ttftP95Ms: 1200
+    latencyP99Ms: 5000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 12
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 600
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 1200
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-live-moderation
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-live-moderation
+  template:
+    metadata:
+      labels:
+        app: eval-live-moderation
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-live-moderation
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-office-agent
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-office-agent
+  template:
+    metadata:
+      labels:
+        app: eval-office-agent
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-office-agent
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent

@@ -22,6 +22,9 @@ const (
 	AllocationLabelWorkloadName      = "astra.aiinfra.io/workload-name"
 	AllocationLabelNodeName          = "astra.aiinfra.io/node-name"
 	AllocationLabelPriority          = "astra.aiinfra.io/priority"
+
+	AllocationAnnotationSourcePodName = "astra.aiinfra.io/source-pod-name"
+	AllocationAnnotationSourcePodUID  = "astra.aiinfra.io/source-pod-uid"
 )
 
 func (p *AstraScheduler) Reserve(ctx context.Context, state framework.CycleState, pod *corev1.Pod, nodeName string) *framework.Status {
@@ -104,6 +107,10 @@ func fillAllocation(
 		AllocationLabelWorkloadName:      labelValue(pod.Name),
 		AllocationLabelNodeName:          labelValue(nodeName),
 		AllocationLabelPriority:          labelValue(profile.Spec.Priority),
+	})
+	allocation.Annotations = mergeLabels(allocation.Annotations, map[string]string{
+		AllocationAnnotationSourcePodName: pod.Name,
+		AllocationAnnotationSourcePodUID:  string(pod.UID),
 	})
 
 	allocation.Spec = astrav1alpha1.AIResourceAllocationSpec{

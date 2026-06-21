@@ -1,0 +1,161 @@
+LAST SEEN   TYPE     REASON              OBJECT                                           MESSAGE
+7m38s       Normal   Scheduled           pod/eval-office-agent-654bd9764-bqnth            Successfully assigned astra-eval/eval-office-agent-654bd9764-bqnth to master0
+20m         Normal   Scheduled           pod/eval-office-agent-654bd9764-dlwhj            Successfully assigned astra-eval/eval-office-agent-654bd9764-dlwhj to worker1
+4m19s       Normal   Scheduled           pod/eval-risk-sensitive-chat-7d45bb7568-js7lr    Successfully assigned astra-eval/eval-risk-sensitive-chat-7d45bb7568-js7lr to master0
+46m         Normal   Scheduled           pod/eval-kv-agent-74f59b67b4-6sqk5               Successfully assigned astra-eval/eval-kv-agent-74f59b67b4-6sqk5 to worker0
+35s         Normal   Scheduled           pod/eval-risk-sensitive-chat-7d45bb7568-xdgbn    Successfully assigned astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn to master0
+5m51s       Normal   Scheduled           pod/eval-batch-embedding-5fc67bd8cd-httmv        Successfully assigned astra-eval/eval-batch-embedding-5fc67bd8cd-httmv to worker1
+24m         Normal   Scheduled           pod/eval-kv-agent-74f59b67b4-5ddjz               Successfully assigned astra-eval/eval-kv-agent-74f59b67b4-5ddjz to worker0
+24m         Normal   Scheduled           pod/eval-decode-chat-7c58f7b588-rmmbl            Successfully assigned astra-eval/eval-decode-chat-7c58f7b588-rmmbl to worker0
+2m37s       Normal   Scheduled           pod/eval-prefill-embedding-6b879fb958-wl88g      Successfully assigned astra-eval/eval-prefill-embedding-6b879fb958-wl88g to worker1
+11m         Normal   Scheduled           pod/eval-office-agent-654bd9764-4cjvz            Successfully assigned astra-eval/eval-office-agent-654bd9764-4cjvz to worker1
+20m         Normal   Scheduled           pod/eval-live-moderation-5ff9cd648-2hqh7         Successfully assigned astra-eval/eval-live-moderation-5ff9cd648-2hqh7 to master0
+116s        Normal   Scheduled           pod/eval-office-agent-654bd9764-4l5hf            Successfully assigned astra-eval/eval-office-agent-654bd9764-4l5hf to worker1
+2m37s       Normal   Scheduled           pod/eval-kv-agent-74f59b67b4-j5db8               Successfully assigned astra-eval/eval-kv-agent-74f59b67b4-j5db8 to worker0
+24m         Normal   Scheduled           pod/eval-prefill-embedding-6b879fb958-tqq9h      Successfully assigned astra-eval/eval-prefill-embedding-6b879fb958-tqq9h to worker1
+76s         Normal   Scheduled           pod/eval-chat-service-65cf4f5c6-9f94j            Successfully assigned astra-eval/eval-chat-service-65cf4f5c6-9f94j to worker0
+76s         Normal   Scheduled           pod/eval-batch-embedding-5fc67bd8cd-bcsgs        Successfully assigned astra-eval/eval-batch-embedding-5fc67bd8cd-bcsgs to worker1
+46m         Normal   Scheduled           pod/eval-decode-chat-7c58f7b588-9fzwx            Successfully assigned astra-eval/eval-decode-chat-7c58f7b588-9fzwx to worker0
+116s        Normal   Scheduled           pod/eval-live-moderation-5ff9cd648-z9fjj         Successfully assigned astra-eval/eval-live-moderation-5ff9cd648-z9fjj to master0
+2m37s       Normal   Scheduled           pod/eval-decode-chat-7c58f7b588-tcxlk            Successfully assigned astra-eval/eval-decode-chat-7c58f7b588-tcxlk to worker0
+5m51s       Normal   Scheduled           pod/eval-chat-service-65cf4f5c6-b8mth            Successfully assigned astra-eval/eval-chat-service-65cf4f5c6-b8mth to worker0
+46m         Normal   Scheduled           pod/eval-prefill-embedding-6b879fb958-8ztnz      Successfully assigned astra-eval/eval-prefill-embedding-6b879fb958-8ztnz to worker1
+7m38s       Normal   Scheduled           pod/eval-live-moderation-5ff9cd648-7qs8p         Successfully assigned astra-eval/eval-live-moderation-5ff9cd648-7qs8p to worker1
+11m         Normal   Scheduled           pod/eval-live-moderation-5ff9cd648-5pkjq         Successfully assigned astra-eval/eval-live-moderation-5ff9cd648-5pkjq to master0
+46m         Normal   SuccessfulCreate    replicaset/eval-kv-agent-74f59b67b4              Created pod: eval-kv-agent-74f59b67b4-6sqk5
+46m         Normal   ScalingReplicaSet   deployment/eval-decode-chat                      Scaled up replica set eval-decode-chat-7c58f7b588 from 0 to 1
+46m         Normal   SuccessfulCreate    replicaset/eval-prefill-embedding-6b879fb958     Created pod: eval-prefill-embedding-6b879fb958-8ztnz
+46m         Normal   ScalingReplicaSet   deployment/eval-kv-agent                         Scaled up replica set eval-kv-agent-74f59b67b4 from 0 to 1
+46m         Normal   SuccessfulCreate    replicaset/eval-decode-chat-7c58f7b588           Created pod: eval-decode-chat-7c58f7b588-9fzwx
+46m         Normal   ScalingReplicaSet   deployment/eval-prefill-embedding                Scaled up replica set eval-prefill-embedding-6b879fb958 from 0 to 1
+46m         Normal   Started             pod/eval-prefill-embedding-6b879fb958-8ztnz      Container started
+46m         Normal   Started             pod/eval-decode-chat-7c58f7b588-9fzwx            Container started
+46m         Normal   Started             pod/eval-kv-agent-74f59b67b4-6sqk5               Container started
+46m         Normal   Created             pod/eval-kv-agent-74f59b67b4-6sqk5               Container created
+46m         Normal   Pulled              pod/eval-kv-agent-74f59b67b4-6sqk5               Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+46m         Normal   Created             pod/eval-decode-chat-7c58f7b588-9fzwx            Container created
+46m         Normal   Pulled              pod/eval-prefill-embedding-6b879fb958-8ztnz      Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+46m         Normal   Created             pod/eval-prefill-embedding-6b879fb958-8ztnz      Container created
+46m         Normal   Pulled              pod/eval-decode-chat-7c58f7b588-9fzwx            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+24m         Normal   Killing             pod/eval-prefill-embedding-6b879fb958-8ztnz      Stopping container pause
+24m         Normal   Killing             pod/eval-decode-chat-7c58f7b588-9fzwx            Stopping container pause
+24m         Normal   Killing             pod/eval-kv-agent-74f59b67b4-6sqk5               Stopping container pause
+24m         Normal   Created             pod/eval-kv-agent-74f59b67b4-5ddjz               Container created
+24m         Normal   Pulled              pod/eval-kv-agent-74f59b67b4-5ddjz               Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+24m         Normal   ScalingReplicaSet   deployment/eval-kv-agent                         Scaled up replica set eval-kv-agent-74f59b67b4 from 0 to 1
+24m         Normal   SuccessfulCreate    replicaset/eval-decode-chat-7c58f7b588           Created pod: eval-decode-chat-7c58f7b588-rmmbl
+24m         Normal   Created             pod/eval-prefill-embedding-6b879fb958-tqq9h      Container created
+24m         Normal   Started             pod/eval-prefill-embedding-6b879fb958-tqq9h      Container started
+24m         Normal   ScalingReplicaSet   deployment/eval-decode-chat                      Scaled up replica set eval-decode-chat-7c58f7b588 from 0 to 1
+24m         Normal   Pulled              pod/eval-decode-chat-7c58f7b588-rmmbl            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+24m         Normal   SuccessfulCreate    replicaset/eval-prefill-embedding-6b879fb958     Created pod: eval-prefill-embedding-6b879fb958-tqq9h
+24m         Normal   Pulled              pod/eval-prefill-embedding-6b879fb958-tqq9h      Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+24m         Normal   SuccessfulCreate    replicaset/eval-kv-agent-74f59b67b4              Created pod: eval-kv-agent-74f59b67b4-5ddjz
+24m         Normal   Created             pod/eval-decode-chat-7c58f7b588-rmmbl            Container created
+24m         Normal   Started             pod/eval-decode-chat-7c58f7b588-rmmbl            Container started
+24m         Normal   ScalingReplicaSet   deployment/eval-prefill-embedding                Scaled up replica set eval-prefill-embedding-6b879fb958 from 0 to 1
+24m         Normal   Started             pod/eval-kv-agent-74f59b67b4-5ddjz               Container started
+20m         Normal   Killing             pod/eval-kv-agent-74f59b67b4-5ddjz               Stopping container pause
+20m         Normal   Killing             pod/eval-prefill-embedding-6b879fb958-tqq9h      Stopping container pause
+20m         Normal   Killing             pod/eval-decode-chat-7c58f7b588-rmmbl            Stopping container pause
+20m         Normal   Created             pod/eval-office-agent-654bd9764-dlwhj            Container created
+20m         Normal   ScalingReplicaSet   deployment/eval-office-agent                     Scaled up replica set eval-office-agent-654bd9764 from 0 to 1
+20m         Normal   SuccessfulCreate    replicaset/eval-live-moderation-5ff9cd648        Created pod: eval-live-moderation-5ff9cd648-2hqh7
+20m         Normal   Started             pod/eval-live-moderation-5ff9cd648-2hqh7         Container started
+20m         Normal   Created             pod/eval-live-moderation-5ff9cd648-2hqh7         Container created
+20m         Normal   Pulled              pod/eval-office-agent-654bd9764-dlwhj            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+20m         Normal   Started             pod/eval-office-agent-654bd9764-dlwhj            Container started
+20m         Normal   Pulled              pod/eval-live-moderation-5ff9cd648-2hqh7         Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+20m         Normal   ScalingReplicaSet   deployment/eval-live-moderation                  Scaled up replica set eval-live-moderation-5ff9cd648 from 0 to 1
+20m         Normal   SuccessfulCreate    replicaset/eval-office-agent-654bd9764           Created pod: eval-office-agent-654bd9764-dlwhj
+11m         Normal   Killing             pod/eval-live-moderation-5ff9cd648-2hqh7         Stopping container pause
+11m         Normal   Killing             pod/eval-office-agent-654bd9764-dlwhj            Stopping container pause
+11m         Normal   Started             pod/eval-live-moderation-5ff9cd648-5pkjq         Container started
+11m         Normal   Pulled              pod/eval-office-agent-654bd9764-4cjvz            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+11m         Normal   ScalingReplicaSet   deployment/eval-live-moderation                  Scaled up replica set eval-live-moderation-5ff9cd648 from 0 to 1
+11m         Normal   Started             pod/eval-office-agent-654bd9764-4cjvz            Container started
+11m         Normal   Pulled              pod/eval-live-moderation-5ff9cd648-5pkjq         Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+11m         Normal   Created             pod/eval-live-moderation-5ff9cd648-5pkjq         Container created
+11m         Normal   SuccessfulCreate    replicaset/eval-office-agent-654bd9764           Created pod: eval-office-agent-654bd9764-4cjvz
+11m         Normal   ScalingReplicaSet   deployment/eval-office-agent                     Scaled up replica set eval-office-agent-654bd9764 from 0 to 1
+11m         Normal   SuccessfulCreate    replicaset/eval-live-moderation-5ff9cd648        Created pod: eval-live-moderation-5ff9cd648-5pkjq
+11m         Normal   Created             pod/eval-office-agent-654bd9764-4cjvz            Container created
+7m44s       Normal   Killing             pod/eval-office-agent-654bd9764-4cjvz            Stopping container pause
+7m44s       Normal   Killing             pod/eval-live-moderation-5ff9cd648-5pkjq         Stopping container pause
+7m39s       Normal   SuccessfulCreate    replicaset/eval-office-agent-654bd9764           Created pod: eval-office-agent-654bd9764-bqnth
+7m39s       Normal   ScalingReplicaSet   deployment/eval-office-agent                     Scaled up replica set eval-office-agent-654bd9764 from 0 to 1
+7m39s       Normal   SuccessfulCreate    replicaset/eval-live-moderation-5ff9cd648        Created pod: eval-live-moderation-5ff9cd648-7qs8p
+7m39s       Normal   ScalingReplicaSet   deployment/eval-live-moderation                  Scaled up replica set eval-live-moderation-5ff9cd648 from 0 to 1
+7m38s       Normal   Started             pod/eval-live-moderation-5ff9cd648-7qs8p         Container started
+7m38s       Normal   Pulled              pod/eval-office-agent-654bd9764-bqnth            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+7m38s       Normal   Created             pod/eval-office-agent-654bd9764-bqnth            Container created
+7m38s       Normal   Created             pod/eval-live-moderation-5ff9cd648-7qs8p         Container created
+7m38s       Normal   Pulled              pod/eval-live-moderation-5ff9cd648-7qs8p         Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+7m38s       Normal   Started             pod/eval-office-agent-654bd9764-bqnth            Container started
+5m57s       Normal   Killing             pod/eval-office-agent-654bd9764-bqnth            Stopping container pause
+5m57s       Normal   Killing             pod/eval-live-moderation-5ff9cd648-7qs8p         Stopping container pause
+5m52s       Normal   SuccessfulCreate    replicaset/eval-batch-embedding-5fc67bd8cd       Created pod: eval-batch-embedding-5fc67bd8cd-httmv
+5m52s       Normal   ScalingReplicaSet   deployment/eval-chat-service                     Scaled up replica set eval-chat-service-65cf4f5c6 from 0 to 1
+5m52s       Normal   SuccessfulCreate    replicaset/eval-chat-service-65cf4f5c6           Created pod: eval-chat-service-65cf4f5c6-b8mth
+5m52s       Normal   ScalingReplicaSet   deployment/eval-batch-embedding                  Scaled up replica set eval-batch-embedding-5fc67bd8cd from 0 to 1
+5m51s       Normal   Pulled              pod/eval-batch-embedding-5fc67bd8cd-httmv        Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+5m51s       Normal   Started             pod/eval-chat-service-65cf4f5c6-b8mth            Container started
+5m51s       Normal   Created             pod/eval-batch-embedding-5fc67bd8cd-httmv        Container created
+5m51s       Normal   Created             pod/eval-chat-service-65cf4f5c6-b8mth            Container created
+5m51s       Normal   Pulled              pod/eval-chat-service-65cf4f5c6-b8mth            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+5m51s       Normal   Started             pod/eval-batch-embedding-5fc67bd8cd-httmv        Container started
+4m25s       Normal   Killing             pod/eval-chat-service-65cf4f5c6-b8mth            Stopping container pause
+4m25s       Normal   Killing             pod/eval-batch-embedding-5fc67bd8cd-httmv        Stopping container pause
+4m20s       Normal   SuccessfulCreate    replicaset/eval-risk-sensitive-chat-7d45bb7568   Created pod: eval-risk-sensitive-chat-7d45bb7568-js7lr
+4m20s       Normal   ScalingReplicaSet   deployment/eval-risk-sensitive-chat              Scaled up replica set eval-risk-sensitive-chat-7d45bb7568 from 0 to 1
+4m19s       Normal   Created             pod/eval-risk-sensitive-chat-7d45bb7568-js7lr    Container created
+4m19s       Normal   Started             pod/eval-risk-sensitive-chat-7d45bb7568-js7lr    Container started
+4m19s       Normal   Pulled              pod/eval-risk-sensitive-chat-7d45bb7568-js7lr    Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+2m43s       Normal   Killing             pod/eval-risk-sensitive-chat-7d45bb7568-js7lr    Stopping container pause
+2m38s       Normal   SuccessfulCreate    replicaset/eval-prefill-embedding-6b879fb958     Created pod: eval-prefill-embedding-6b879fb958-wl88g
+2m38s       Normal   SuccessfulCreate    replicaset/eval-kv-agent-74f59b67b4              Created pod: eval-kv-agent-74f59b67b4-j5db8
+2m38s       Normal   Created             pod/eval-decode-chat-7c58f7b588-tcxlk            Container created
+2m38s       Normal   Pulled              pod/eval-decode-chat-7c58f7b588-tcxlk            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+2m38s       Normal   ScalingReplicaSet   deployment/eval-kv-agent                         Scaled up replica set eval-kv-agent-74f59b67b4 from 0 to 1
+2m38s       Normal   ScalingReplicaSet   deployment/eval-prefill-embedding                Scaled up replica set eval-prefill-embedding-6b879fb958 from 0 to 1
+2m38s       Normal   Pulled              pod/eval-prefill-embedding-6b879fb958-wl88g      Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+2m38s       Normal   SuccessfulCreate    replicaset/eval-decode-chat-7c58f7b588           Created pod: eval-decode-chat-7c58f7b588-tcxlk
+2m38s       Normal   ScalingReplicaSet   deployment/eval-decode-chat                      Scaled up replica set eval-decode-chat-7c58f7b588 from 0 to 1
+2m37s       Normal   Created             pod/eval-kv-agent-74f59b67b4-j5db8               Container created
+2m37s       Normal   Pulled              pod/eval-kv-agent-74f59b67b4-j5db8               Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+2m37s       Normal   Started             pod/eval-prefill-embedding-6b879fb958-wl88g      Container started
+2m37s       Normal   Started             pod/eval-decode-chat-7c58f7b588-tcxlk            Container started
+2m37s       Normal   Created             pod/eval-prefill-embedding-6b879fb958-wl88g      Container created
+2m37s       Normal   Started             pod/eval-kv-agent-74f59b67b4-j5db8               Container started
+2m2s        Normal   Killing             pod/eval-decode-chat-7c58f7b588-tcxlk            Stopping container pause
+2m2s        Normal   Killing             pod/eval-prefill-embedding-6b879fb958-wl88g      Stopping container pause
+2m2s        Normal   Killing             pod/eval-kv-agent-74f59b67b4-j5db8               Stopping container pause
+117s        Normal   ScalingReplicaSet   deployment/eval-live-moderation                  Scaled up replica set eval-live-moderation-5ff9cd648 from 0 to 1
+117s        Normal   Started             pod/eval-live-moderation-5ff9cd648-z9fjj         Container started
+117s        Normal   Created             pod/eval-live-moderation-5ff9cd648-z9fjj         Container created
+117s        Normal   Started             pod/eval-office-agent-654bd9764-4l5hf            Container started
+117s        Normal   Created             pod/eval-office-agent-654bd9764-4l5hf            Container created
+117s        Normal   Pulled              pod/eval-office-agent-654bd9764-4l5hf            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+117s        Normal   SuccessfulCreate    replicaset/eval-office-agent-654bd9764           Created pod: eval-office-agent-654bd9764-4l5hf
+117s        Normal   SuccessfulCreate    replicaset/eval-live-moderation-5ff9cd648        Created pod: eval-live-moderation-5ff9cd648-z9fjj
+117s        Normal   ScalingReplicaSet   deployment/eval-office-agent                     Scaled up replica set eval-office-agent-654bd9764 from 0 to 1
+117s        Normal   Pulled              pod/eval-live-moderation-5ff9cd648-z9fjj         Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+82s         Normal   Killing             pod/eval-office-agent-654bd9764-4l5hf            Stopping container pause
+82s         Normal   Killing             pod/eval-live-moderation-5ff9cd648-z9fjj         Stopping container pause
+76s         Normal   Pulled              pod/eval-chat-service-65cf4f5c6-9f94j            Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+76s         Normal   Pulled              pod/eval-batch-embedding-5fc67bd8cd-bcsgs        Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+76s         Normal   Started             pod/eval-batch-embedding-5fc67bd8cd-bcsgs        Container started
+76s         Normal   SuccessfulCreate    replicaset/eval-batch-embedding-5fc67bd8cd       Created pod: eval-batch-embedding-5fc67bd8cd-bcsgs
+76s         Normal   Created             pod/eval-batch-embedding-5fc67bd8cd-bcsgs        Container created
+76s         Normal   ScalingReplicaSet   deployment/eval-batch-embedding                  Scaled up replica set eval-batch-embedding-5fc67bd8cd from 0 to 1
+76s         Normal   Created             pod/eval-chat-service-65cf4f5c6-9f94j            Container created
+76s         Normal   Started             pod/eval-chat-service-65cf4f5c6-9f94j            Container started
+76s         Normal   ScalingReplicaSet   deployment/eval-chat-service                     Scaled up replica set eval-chat-service-65cf4f5c6 from 0 to 1
+76s         Normal   SuccessfulCreate    replicaset/eval-chat-service-65cf4f5c6           Created pod: eval-chat-service-65cf4f5c6-9f94j
+41s         Normal   Killing             pod/eval-batch-embedding-5fc67bd8cd-bcsgs        Stopping container pause
+41s         Normal   Killing             pod/eval-chat-service-65cf4f5c6-9f94j            Stopping container pause
+35s         Normal   Pulled              pod/eval-risk-sensitive-chat-7d45bb7568-xdgbn    Container image "registry.k8s.io/pause:3.10.1" already present on machine and can be accessed by the pod
+35s         Normal   Created             pod/eval-risk-sensitive-chat-7d45bb7568-xdgbn    Container created
+35s         Normal   Started             pod/eval-risk-sensitive-chat-7d45bb7568-xdgbn    Container started
+35s         Normal   SuccessfulCreate    replicaset/eval-risk-sensitive-chat-7d45bb7568   Created pod: eval-risk-sensitive-chat-7d45bb7568-xdgbn
+35s         Normal   ScalingReplicaSet   deployment/eval-risk-sensitive-chat              Scaled up replica set eval-risk-sensitive-chat-7d45bb7568 from 0 to 1

@@ -1,0 +1,6 @@
+aiworkloadprofile.astra.aiinfra.io/eval-decode-chat created
+aiworkloadprofile.astra.aiinfra.io/eval-prefill-embedding created
+aiworkloadprofile.astra.aiinfra.io/eval-kv-agent created
+deployment.apps/eval-decode-chat created
+deployment.apps/eval-prefill-embedding created
+deployment.apps/eval-kv-agent created

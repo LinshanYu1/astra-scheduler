@@ -5,12 +5,17 @@ import (
 	"fmt"
 
 	astrav1alpha1 "github.com/linshanyu/astra-scheduler/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ApplyRequest struct {
-	Node       *astrav1alpha1.AINodeResourceProfile
-	Allocation *astrav1alpha1.AIResourceAllocation
-	Action     string
+	Node             *astrav1alpha1.AINodeResourceProfile
+	Allocation       *astrav1alpha1.AIResourceAllocation
+	Action           string
+	DesiredResources *astrav1alpha1.ResourceSummary
+	AllocationTier   string
+	TargetPhase      string
+	Reason           string
 }
 
 type ApplyResult struct {
@@ -32,10 +37,23 @@ type Backend interface {
 	Snapshot(context.Context, SnapshotRequest) (SnapshotResult, error)
 }
 
+type Options struct {
+	Client             client.Reader
+	NodeName           string
+	ConfigMapNamespace string
+	ConfigMapName      string
+}
+
 func New(name string) (Backend, error) {
+	return NewWithOptions(name, Options{})
+}
+
+func NewWithOptions(name string, options Options) (Backend, error) {
 	switch name {
 	case "", "fake":
-		return NewFakeBackend(), nil
+		return NewFakeBackend(options), nil
+	case "real", "nvidia", "runtime", "cri":
+		return NewRealBackend(name), nil
 	default:
 		return nil, fmt.Errorf("unsupported agent backend %q", name)
 	}

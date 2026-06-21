@@ -1,0 +1,383 @@
+apiVersion: v1
+items:
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AINodeResourceProfile
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"astra.aiinfra.io/v1alpha1","kind":"AINodeResourceProfile","metadata":{"annotations":{},"name":"master0","namespace":"astra-scheduler-system"},"spec":{"backendType":"fake","capabilities":{"borrowing":true,"eviction":true,"pauseResume":true,"reclaim":true,"sharing":true,"throttling":true},"gpus":[{"computeScore":100,"id":"gpu-0","memoryGiB":80,"product":"fake-a100","uuid":"GPU-fake-master0-0"},{"computeScore":100,"id":"gpu-1","memoryGiB":80,"product":"fake-a100","uuid":"GPU-fake-master0-1"}],"nodeName":"master0","runtime":{"capacity":{"kvCacheGiB":64,"tokenThroughput":{"decodeTokensPerSecond":5000,"prefillTokensPerSecond":4000,"totalTokensPerSecond":9000}},"supports":{"kvCache":true,"pauseResume":true,"requestThrottling":true,"tokenThroughput":true},"type":"fake"}}}
+    creationTimestamp: "2026-06-17T00:38:07Z"
+    generation: 3
+    name: master0
+    namespace: astra-scheduler-system
+    resourceVersion: "3320000"
+    uid: be4905f8-e2b6-4382-bad3-e33ebd998d19
+  spec:
+    backendType: fake
+    capabilities:
+      borrowing: true
+      eviction: true
+      pauseResume: true
+      reclaim: true
+      sharing: true
+      throttling: true
+    gpus:
+    - computeScore: 100
+      id: gpu-0
+      memoryGiB: 80
+      product: fake-a100
+      uuid: GPU-fake-master0-0
+    - computeScore: 100
+      id: gpu-1
+      memoryGiB: 80
+      product: fake-a100
+      uuid: GPU-fake-master0-1
+    nodeName: master0
+    runtime:
+      capacity:
+        kvCacheGiB: 64
+        tokenThroughput:
+          decodeTokensPerSecond: 5000
+          prefillTokensPerSecond: 4000
+          totalTokensPerSecond: 9000
+      supports:
+        kvCache: true
+        pauseResume: true
+        requestThrottling: true
+        tokenThroughput: true
+      type: fake
+  status:
+    allocatable:
+      decodeTokensPerSecond: 5000
+      gpuCount: 2
+      gpuMemoryGiB: 160
+      kvCacheGiB: 64
+      prefillTokensPerSecond: 4000
+      totalTokensPerSecond: 9000
+    allocated: {}
+    available:
+      decodeTokensPerSecond: 5000
+      gpuCount: 2
+      gpuMemoryGiB: 160
+      kvCacheGiB: 64
+      prefillTokensPerSecond: 4000
+      totalTokensPerSecond: 9000
+    observedAt: "2026-06-17T05:09:22Z"
+    phase: Ready
+    runtime:
+      pressure:
+        queueDepth: 2
+        sloRisk: low
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AINodeResourceProfile
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"astra.aiinfra.io/v1alpha1","kind":"AINodeResourceProfile","metadata":{"annotations":{},"name":"master1","namespace":"astra-scheduler-system"},"spec":{"backendType":"fake","capabilities":{"borrowing":true,"eviction":true,"pauseResume":true,"reclaim":true,"sharing":true,"throttling":true},"gpus":[{"computeScore":100,"id":"gpu-0","memoryGiB":80,"product":"fake-a100","uuid":"GPU-fake-master1-0"},{"computeScore":100,"id":"gpu-1","memoryGiB":80,"product":"fake-a100","uuid":"GPU-fake-master1-1"}],"nodeName":"master1","runtime":{"capacity":{"kvCacheGiB":48,"tokenThroughput":{"decodeTokensPerSecond":3500,"prefillTokensPerSecond":4500,"totalTokensPerSecond":8000}},"supports":{"kvCache":true,"pauseResume":true,"requestThrottling":true,"tokenThroughput":true},"type":"fake"}}}
+    creationTimestamp: "2026-06-17T04:19:24Z"
+    generation: 2
+    name: master1
+    namespace: astra-scheduler-system
+    resourceVersion: "3320001"
+    uid: f595113d-8b10-42f1-b1f0-ac8fee55b393
+  spec:
+    backendType: fake
+    capabilities:
+      borrowing: true
+      eviction: true
+      pauseResume: true
+      reclaim: true
+      sharing: true
+      throttling: true
+    gpus:
+    - computeScore: 100
+      id: gpu-0
+      memoryGiB: 80
+      product: fake-a100
+      uuid: GPU-fake-master1-0
+    - computeScore: 100
+      id: gpu-1
+      memoryGiB: 80
+      product: fake-a100
+      uuid: GPU-fake-master1-1
+    nodeName: master1
+    runtime:
+      capacity:
+        kvCacheGiB: 48
+        tokenThroughput:
+          decodeTokensPerSecond: 3500
+          prefillTokensPerSecond: 4500
+          totalTokensPerSecond: 8000
+      supports:
+        kvCache: true
+        pauseResume: true
+        requestThrottling: true
+        tokenThroughput: true
+      type: fake
+  status:
+    allocatable:
+      decodeTokensPerSecond: 3500
+      gpuCount: 2
+      gpuMemoryGiB: 160
+      kvCacheGiB: 48
+      prefillTokensPerSecond: 4500
+      totalTokensPerSecond: 8000
+    allocated: {}
+    available:
+      decodeTokensPerSecond: 3500
+      gpuCount: 2
+      gpuMemoryGiB: 160
+      kvCacheGiB: 48
+      prefillTokensPerSecond: 4500
+      totalTokensPerSecond: 8000
+    observedAt: "2026-06-17T05:09:22Z"
+    phase: Ready
+    runtime:
+      pressure:
+        queueDepth: 12
+        sloRisk: high
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AINodeResourceProfile
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"astra.aiinfra.io/v1alpha1","kind":"AINodeResourceProfile","metadata":{"annotations":{},"name":"worker0","namespace":"astra-scheduler-system"},"spec":{"backendType":"fake","capabilities":{"borrowing":true,"eviction":true,"pauseResume":true,"reclaim":true,"sharing":true,"throttling":true},"gpus":[{"computeScore":120,"id":"gpu-0","memoryGiB":80,"product":"fake-h100","uuid":"GPU-fake-worker0-0"},{"computeScore":120,"id":"gpu-1","memoryGiB":80,"product":"fake-h100","uuid":"GPU-fake-worker0-1"},{"computeScore":120,"id":"gpu-2","memoryGiB":80,"product":"fake-h100","uuid":"GPU-fake-worker0-2"},{"computeScore":120,"id":"gpu-3","memoryGiB":80,"product":"fake-h100","uuid":"GPU-fake-worker0-3"}],"nodeName":"worker0","runtime":{"capacity":{"kvCacheGiB":128,"tokenThroughput":{"decodeTokensPerSecond":10000,"prefillTokensPerSecond":6000,"totalTokensPerSecond":14000}},"supports":{"kvCache":true,"pauseResume":true,"requestThrottling":true,"tokenThroughput":true},"type":"fake"}}}
+    creationTimestamp: "2026-06-17T04:19:26Z"
+    generation: 2
+    name: worker0
+    namespace: astra-scheduler-system
+    resourceVersion: "3320007"
+    uid: a44e5d8e-016f-4da0-a525-361909e3e31f
+  spec:
+    backendType: fake
+    capabilities:
+      borrowing: true
+      eviction: true
+      pauseResume: true
+      reclaim: true
+      sharing: true
+      throttling: true
+    gpus:
+    - computeScore: 120
+      id: gpu-0
+      memoryGiB: 80
+      product: fake-h100
+      uuid: GPU-fake-worker0-0
+    - computeScore: 120
+      id: gpu-1
+      memoryGiB: 80
+      product: fake-h100
+      uuid: GPU-fake-worker0-1
+    - computeScore: 120
+      id: gpu-2
+      memoryGiB: 80
+      product: fake-h100
+      uuid: GPU-fake-worker0-2
+    - computeScore: 120
+      id: gpu-3
+      memoryGiB: 80
+      product: fake-h100
+      uuid: GPU-fake-worker0-3
+    nodeName: worker0
+    runtime:
+      capacity:
+        kvCacheGiB: 128
+        tokenThroughput:
+          decodeTokensPerSecond: 10000
+          prefillTokensPerSecond: 6000
+          totalTokensPerSecond: 14000
+      supports:
+        kvCache: true
+        pauseResume: true
+        requestThrottling: true
+        tokenThroughput: true
+      type: fake
+  status:
+    allocatable:
+      decodeTokensPerSecond: 10000
+      gpuCount: 4
+      gpuMemoryGiB: 320
+      kvCacheGiB: 128
+      prefillTokensPerSecond: 6000
+      totalTokensPerSecond: 14000
+    allocated:
+      decodeTokensPerSecond: 5000
+      gpuCount: 2
+      gpuMemoryGiB: 60
+      kvCacheGiB: 88
+    allocations:
+    - actions: {}
+      demandShape: kv_heavy
+      name: eval-kv-agent-74f59b67b4-j5db8-b13292c5
+      namespace: astra-eval
+      phase: Applied
+      priority: medium
+      resourceRequest:
+        preferred:
+          decodeTokensPerSecond: 1500
+          gpuCount: 1
+          gpuMemoryGiB: 30
+          kvCacheGiB: 64
+        required:
+          decodeTokensPerSecond: 800
+          gpuCount: 1
+          gpuMemoryGiB: 20
+          kvCacheGiB: 24
+      resources:
+        decodeTokensPerSecond: 1500
+        gpuCount: 1
+        gpuMemoryGiB: 30
+        kvCacheGiB: 64
+      workloadName: eval-kv-agent
+      workloadType: online
+    - actions: {}
+      demandShape: decode_heavy
+      name: eval-decode-chat-7c58f7b588-tcxlk-b13292c5
+      namespace: astra-eval
+      phase: Applied
+      priority: high
+      resourceRequest:
+        max:
+          decodeTokensPerSecond: 5000
+          gpuCount: 1
+          gpuMemoryGiB: 40
+          kvCacheGiB: 32
+        preferred:
+          decodeTokensPerSecond: 3500
+          gpuCount: 1
+          gpuMemoryGiB: 30
+          kvCacheGiB: 24
+        required:
+          decodeTokensPerSecond: 1200
+          gpuCount: 1
+          gpuMemoryGiB: 20
+          kvCacheGiB: 16
+      resources:
+        decodeTokensPerSecond: 3500
+        gpuCount: 1
+        gpuMemoryGiB: 30
+        kvCacheGiB: 24
+      workloadName: eval-decode-chat
+      workloadType: online
+    available:
+      decodeTokensPerSecond: 5000
+      gpuCount: 2
+      gpuMemoryGiB: 260
+      kvCacheGiB: 40
+      prefillTokensPerSecond: 6000
+      totalTokensPerSecond: 14000
+    observedAt: "2026-06-17T05:09:23Z"
+    phase: Ready
+    runtime:
+      pressure:
+        queueDepth: 1
+        sloRisk: low
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AINodeResourceProfile
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"astra.aiinfra.io/v1alpha1","kind":"AINodeResourceProfile","metadata":{"annotations":{},"name":"worker1","namespace":"astra-scheduler-system"},"spec":{"backendType":"fake","capabilities":{"borrowing":true,"eviction":true,"pauseResume":true,"reclaim":true,"sharing":true,"throttling":true},"gpus":[{"computeScore":90,"id":"gpu-0","memoryGiB":80,"product":"fake-l40s","uuid":"GPU-fake-worker1-0"},{"computeScore":90,"id":"gpu-1","memoryGiB":80,"product":"fake-l40s","uuid":"GPU-fake-worker1-1"},{"computeScore":90,"id":"gpu-2","memoryGiB":80,"product":"fake-l40s","uuid":"GPU-fake-worker1-2"}],"nodeName":"worker1","runtime":{"capacity":{"kvCacheGiB":96,"tokenThroughput":{"decodeTokensPerSecond":5000,"prefillTokensPerSecond":10000,"totalTokensPerSecond":15000}},"supports":{"kvCache":true,"pauseResume":true,"requestThrottling":true,"tokenThroughput":true},"type":"fake"}}}
+    creationTimestamp: "2026-06-17T04:19:27Z"
+    generation: 2
+    name: worker1
+    namespace: astra-scheduler-system
+    resourceVersion: "3320010"
+    uid: 0acba67d-411f-4088-bf8c-78e51ee9d853
+  spec:
+    backendType: fake
+    capabilities:
+      borrowing: true
+      eviction: true
+      pauseResume: true
+      reclaim: true
+      sharing: true
+      throttling: true
+    gpus:
+    - computeScore: 90
+      id: gpu-0
+      memoryGiB: 80
+      product: fake-l40s
+      uuid: GPU-fake-worker1-0
+    - computeScore: 90
+      id: gpu-1
+      memoryGiB: 80
+      product: fake-l40s
+      uuid: GPU-fake-worker1-1
+    - computeScore: 90
+      id: gpu-2
+      memoryGiB: 80
+      product: fake-l40s
+      uuid: GPU-fake-worker1-2
+    nodeName: worker1
+    runtime:
+      capacity:
+        kvCacheGiB: 96
+        tokenThroughput:
+          decodeTokensPerSecond: 5000
+          prefillTokensPerSecond: 10000
+          totalTokensPerSecond: 15000
+      supports:
+        kvCache: true
+        pauseResume: true
+        requestThrottling: true
+        tokenThroughput: true
+      type: fake
+  status:
+    allocatable:
+      decodeTokensPerSecond: 5000
+      gpuCount: 3
+      gpuMemoryGiB: 240
+      kvCacheGiB: 96
+      prefillTokensPerSecond: 10000
+      totalTokensPerSecond: 15000
+    allocated:
+      gpuCount: 1
+      gpuMemoryGiB: 40
+      kvCacheGiB: 12
+      prefillTokensPerSecond: 5000
+    allocations:
+    - actions:
+        evictable: true
+        pauseable: true
+        reclaimable: true
+        throttleable: true
+      demandShape: prefill_heavy
+      name: eval-prefill-embedding-6b879fb958-wl88g-34aa1081
+      namespace: astra-eval
+      phase: Applied
+      priority: low
+      resourceRequest:
+        preferred:
+          gpuCount: 1
+          gpuMemoryGiB: 40
+          kvCacheGiB: 12
+          prefillTokensPerSecond: 5000
+        required:
+          gpuCount: 1
+          gpuMemoryGiB: 20
+          kvCacheGiB: 8
+          prefillTokensPerSecond: 1200
+      resources:
+        gpuCount: 1
+        gpuMemoryGiB: 40
+        kvCacheGiB: 12
+        prefillTokensPerSecond: 5000
+      workloadName: eval-prefill-embedding
+      workloadType: offline
+    available:
+      decodeTokensPerSecond: 5000
+      gpuCount: 2
+      gpuMemoryGiB: 200
+      kvCacheGiB: 84
+      prefillTokensPerSecond: 5000
+      totalTokensPerSecond: 15000
+    observedAt: "2026-06-17T05:09:24Z"
+    phase: Ready
+    runtime:
+      pressure:
+        queueDepth: 3
+        sloRisk: low
+kind: List
+metadata:
+  resourceVersion: ""

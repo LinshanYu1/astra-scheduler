@@ -1,0 +1,96 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: peak-low-offline-source
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: v1
+    kind: Pod
+    name: peak-low-offline-source
+    namespace: astra-eval
+  workloadType: offline
+  priority: low
+  demandShape: prefill_heavy
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 24
+      prefillTokensPerSecond: 500
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 40
+      prefillTokensPerSecond: 2000
+  policy:
+    allowBorrowing: true
+    allowReclaimFromLowerPriority: false
+    throttleable: false
+    pauseable: false
+    evictable: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: peak-low-offline-source
+  namespace: astra-eval
+  labels:
+    app: peak-low-offline-source
+  annotations:
+    astra.aiinfra.io/workload-profile: peak-low-offline-source
+spec:
+  nodeName: master0
+  schedulerName: astra-scheduler
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.10.1
+      imagePullPolicy: IfNotPresent
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIResourceAllocation
+metadata:
+  name: peak-low-offline-source-manual-master0
+  namespace: astra-eval
+  labels:
+    astra.aiinfra.io/managed-by: astra-scheduler
+    astra.aiinfra.io/workload-namespace: astra-eval
+    astra.aiinfra.io/workload-name: peak-low-offline-source
+    astra.aiinfra.io/node-name: master0
+    astra.aiinfra.io/priority: low
+  annotations:
+    astra.aiinfra.io/source-pod-name: peak-low-offline-source
+spec:
+  workloadRef:
+    apiVersion: astra.aiinfra.io/v1alpha1
+    kind: AIWorkloadProfile
+    name: peak-low-offline-source
+    namespace: astra-eval
+  workloadType: offline
+  priority: low
+  demandShape: prefill_heavy
+  resourceRequest:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 24
+      prefillTokensPerSecond: 500
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 40
+      prefillTokensPerSecond: 2000
+  nodeName: master0
+  resources:
+    gpuCount: 1
+    gpuMemoryGiB: 20
+    kvCacheGiB: 40
+    prefillTokensPerSecond: 2000
+  allocationType: preferred
+  actions:
+    evictable: true
+

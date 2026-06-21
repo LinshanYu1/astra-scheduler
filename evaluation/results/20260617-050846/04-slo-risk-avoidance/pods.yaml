@@ -1,0 +1,143 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      astra.aiinfra.io/workload-profile: eval-risk-sensitive-chat
+    creationTimestamp: "2026-06-17T05:10:55Z"
+    generateName: eval-risk-sensitive-chat-7d45bb7568-
+    generation: 1
+    labels:
+      app: eval-risk-sensitive-chat
+      pod-template-hash: 7d45bb7568
+    name: eval-risk-sensitive-chat-7d45bb7568-xdgbn
+    namespace: astra-eval
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: eval-risk-sensitive-chat-7d45bb7568
+      uid: 827dae4f-a45d-478e-a979-fa47093d415f
+    resourceVersion: "3320472"
+    uid: 416b849e-0d39-483d-9fb5-87aa9c82adad
+  spec:
+    containers:
+    - image: registry.k8s.io/pause:3.10.1
+      imagePullPolicy: IfNotPresent
+      name: pause
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-crv4p
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: master0
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: astra-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-crv4p
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-06-17T05:10:55Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-06-17T05:10:55Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-06-17T05:10:55Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-06-17T05:10:55Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-06-17T05:10:55Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://e9301066f04bc43ce37d9c16f854ca489c0d479d0cf6bdbf25687fbb5c0e538d
+      image: registry.k8s.io/pause:3.10.1
+      imageID: registry.k8s.io/pause@sha256:278fb9dbcca9518083ad1e11276933a2e96f23de604a3a08cc3c80002767d24c
+      lastState: {}
+      name: pause
+      ready: true
+      resources: {}
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-06-17T05:10:55Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 65535
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-crv4p
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 192.168.64.17
+    hostIPs:
+    - ip: 192.168.64.17
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.18
+    podIPs:
+    - ip: 10.244.0.18
+    qosClass: BestEffort
+    resources: {}
+    startTime: "2026-06-17T05:10:55Z"
+kind: List
+metadata:
+  resourceVersion: ""

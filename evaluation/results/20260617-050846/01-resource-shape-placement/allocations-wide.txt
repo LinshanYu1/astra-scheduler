@@ -1,0 +1,4 @@
+NAME                                               WORKLOAD                 NAMESPACE    NODE      TYPE        PHASE     AGE
+eval-decode-chat-7c58f7b588-tcxlk-b13292c5         eval-decode-chat         astra-eval   worker0   preferred   Applied   35s
+eval-kv-agent-74f59b67b4-j5db8-b13292c5            eval-kv-agent            astra-eval   worker0   preferred   Applied   35s
+eval-prefill-embedding-6b879fb958-wl88g-34aa1081   eval-prefill-embedding   astra-eval   worker1   preferred   Applied   35s

@@ -92,6 +92,112 @@ temporal demand patterns, and SLO risk signals to improve GPU utilization
 while protecting latency-sensitive online AI services?
 ```
 
+## Research Framing and Extensible Design
+
+The research value of `astra-scheduler` is not just that it can schedule GPU
+workloads. Many systems already schedule GPUs, queues, quotas, and batch jobs.
+The core question here is whether AI workload characteristics can become
+first-class, extensible scheduling signals.
+
+The project is motivated by two observations.
+
+First, resource-constrained AI clusters are common. Not every organization can
+over-provision GPUs for every workload peak. Private AI clusters, internal
+platform teams, edge-cloud environments, and cost-sensitive enterprise AI
+deployments often need to run latency-sensitive online services and
+delay-tolerant offline jobs on the same limited cluster.
+
+Second, AI workloads are not all the same. Two Pods may both request one GPU,
+but their scheduling implications can be very different:
+
+- one may be `decode_heavy` and latency-sensitive;
+- another may be `prefill_heavy` and bursty;
+- another may be `kv_heavy` because of long context;
+- another may be offline embedding that can be paused or throttled;
+- another may only be important during a business peak window.
+
+Traditional cluster schedulers usually reason about generic resources and
+generic priority. LLM serving engines reason about request batching, KV cache,
+prefill/decode, and token throughput inside a runtime. `astra-scheduler`
+explores the layer between them:
+
+```text
+Kubernetes workload intent
+  + workload characteristics
+  + time windows
+  + SLO risk
+  + runtime pressure
+  -> cluster placement and node-local adaptation
+```
+
+### Workload Characteristic Model
+
+The project should avoid hard-coding one company's workload taxonomy. Instead,
+the API and policy engine should expose workload characteristics as extensible
+signals.
+
+The first version models five groups of characteristics:
+
+| Characteristic group | Examples | Scheduling use |
+| --- | --- | --- |
+| Latency sensitivity | `online`, `offline`, `hybrid`, deadline-based jobs | Protect online services and delay offline work when necessary |
+| Demand shape | `decode_heavy`, `prefill_heavy`, `kv_heavy`, `memory_heavy`, `balanced` | Match workloads with nodes that have the right headroom |
+| Temporal pattern | peak window, periodic demand, always-on, opportunistic | Reserve capacity during peaks and borrow during off-peak periods |
+| Adaptability | throttling, pause/resume, eviction, migration | Decide which workloads can be degraded or reclaimed |
+| Business criticality | high, medium, low, best effort | Order allocation and reclaim decisions |
+
+These fields are intentionally not tied to one model runtime. A company that
+only cares about GPU memory can ignore KV-specific signals. A platform that uses
+vLLM or SGLang can add runtime metrics such as KV cache pressure, queue depth,
+and prefill/decode throughput.
+
+### Extensible Policy Architecture
+
+The intended architecture is plugin-oriented:
+
+```text
+AIWorkloadProfile / Pod metadata
+  -> feature extraction
+  -> hard constraints
+  -> soft scoring
+  -> allocation decision
+  -> node-local plan
+  -> backend-specific apply
+```
+
+The policy layer should be split into independent extension points:
+
+- `FilterConstraint`: hard constraints, such as required resources, runtime
+  support, node capability, and time-window resource envelope.
+- `Scorer`: soft preferences, such as preferred-resource coverage, key-resource
+  headroom, workload-mix balance, SLO risk, and time-window preference.
+- `ResourceManager`: node-side resource observation and validation for GPU, KV
+  cache, token throughput, and future resources.
+- `LocalConstraint`: node-side cross-resource checks, such as token throughput
+  requiring GPU capacity or runtime action capability.
+- `Backend`: fake, NVIDIA/DCGM, runtime, DRA, CRI, or other enforcement
+  implementation.
+
+This makes the project a framework rather than a fixed custom scheduler. A
+deployment can add, remove, or replace policy modules based on its workload
+mix and platform capabilities.
+
+### Research Contribution Hypothesis
+
+The project can be evaluated as a research prototype around three claims:
+
+1. Explicit workload characteristics help the scheduler make better placement
+   decisions than GPU-count-only or priority-only scheduling.
+2. Time-window and SLO-risk signals help protect online workloads while still
+   allowing offline workloads to use idle capacity.
+3. A two-level architecture, with central placement and node-local adaptation,
+   can express resource borrowing, throttling, pause/resume, and future runtime
+   integration without embedding all logic into the Kubernetes scheduler.
+
+This positions `astra-scheduler` as a workload-characteristic-aware scheduling
+framework for resource-constrained AI clusters, rather than a one-off scheduler
+for a single task type.
+
 ## Resource Model
 
 The first version models four AI scheduling resources.
@@ -347,6 +453,65 @@ This repository is currently in the first prototype stage. The goal of this
 stage is to make the scheduling architecture executable and easy to extend,
 rather than to integrate with real GPU hardware immediately.
 
+### Implementation Alignment with the Extensible Design
+
+The current code now follows the main extensibility boundaries, while still
+leaving production-grade configuration and policy loading for later versions.
+
+What already matches the intended design:
+
+- The central `Filter` path is constraint-oriented. `FilterConstraint` defines a
+  common interface, and the filter stage runs registered constraints such as
+  base node readiness, runtime capability, node action capability, required
+  resource fit, and time-window envelope checks.
+- The scheduler framework plugin separates `PreFilter`, `Filter`, `Score`,
+  `NormalizeScore`, and `Reserve`, so the Kubernetes scheduling lifecycle is
+  already explicit.
+- The central `Score` path is scorer-oriented. `Scorer` defines a common
+  interface, `ScoreComposer` combines scorer outputs, and `SimplePolicy` now
+  delegates scoring to the composer instead of owning one large scoring
+  function.
+- The node-side agent is modular. It has `ResourceManager` implementations for
+  GPU, KV cache, and token throughput, plus node-local constraints and backend
+  drivers.
+- The fake backend and real backend skeleton share the same backend interface,
+  so fake evaluation and future real integration use the same control path.
+- The local agent scheduler already uses an allocation ledger and produces
+  explicit plans instead of directly mutating state.
+
+What is still incomplete:
+
+- The default scorer set is still wired in code. It includes
+  `PreferredCoverageScorer`, `KeyResourceHeadroomScorer`, `TimeWindowScorer`,
+  `WorkloadMixScorer`, and `SLORiskScorer`. Code can inject a custom scorer
+  list, but future versions should allow scorer registration and weights to be
+  loaded from CRD/YAML configuration.
+- Demand-shape handling has been separated into a resource-weight mapping. Code
+  can inject a custom mapping, but future versions should allow platform teams
+  to configure how workload characteristics map to resource weights without
+  recompiling the scheduler.
+- Priority names and workload type names now have API-level constants, but the
+  CRD fields remain strings for YAML compatibility. Long term, these should be
+  supported by stricter validation and policy adapters.
+- The central scheduler and node agent both reason about time windows, but the
+  shared policy semantics should be documented and tested as a contract so that
+  node-local arbitration does not routinely overturn central placement.
+
+The current default scorer registry is:
+
+```text
+PreferredCoverageScorer
+KeyResourceHeadroomScorer
+WorkloadMixScorer
+TimeWindowScorer
+SLORiskScorer
+```
+
+Each scorer should return a partial score and an explanation. A composer can
+combine them with configurable weights. This will make the project easier to
+extend for different companies or research experiments without editing one
+large scoring function.
+
 ### Implemented
 
 The current version has implemented the following pieces.
@@ -491,6 +656,43 @@ The fake backend does not operate real GPU devices. It simulates accounting and
 status updates so that the scheduler-agent control loop can be tested without a
 GPU cluster.
 
+#### Real Backend Feasibility Skeleton
+
+The repository also includes a first `real` backend skeleton under
+`internal/agent/backend`. This backend is not used for performance evaluation
+yet and does not mutate real GPU or runtime state. Its purpose is narrower:
+to document and validate that every planned node-side action has a plausible
+lower-level integration point.
+
+It can be selected with:
+
+```sh
+astra-agent --backend real
+```
+
+The aliases `nvidia`, `runtime`, and `cri` currently point to the same skeleton.
+The backend returns explicit "not implemented" errors for write actions instead
+of pretending that real enforcement is already available.
+
+Current real-end mapping:
+
+| Astra action or signal | Possible lower-level integration | Current status |
+| --- | --- | --- |
+| Observe GPU identity, memory, utilization | NVML, DCGM, NVIDIA device plugin | mapped, read-only |
+| Observe MIG slices | NVML, `nvidia-smi`, NVIDIA device plugin | mapped, read-only |
+| Configure MIG slices | NVML, `nvidia-smi`, GPU Operator policy | mapped, not implemented |
+| Observe KV cache / queue / token metrics | vLLM, SGLang, TGI, Triton metrics, Prometheus | mapped, read-only |
+| Throttle runtime | runtime-specific concurrency, admission, token-budget, or gateway control | mapped, not implemented |
+| Pause / resume batch work | workload queue, job controller, or runtime adapter | mapped, not implemented |
+| Evict workload | Kubernetes eviction/delete APIs | mapped, not implemented |
+| Observe container state | CRI / containerd | mapped, read-only |
+| Update resource assignment after scheduling | Kubernetes DRA, device plugin semantics, or runtime adapter | mapped, not implemented |
+
+This is intentional. Version 1 should prove the scheduler-agent control loop and
+policy design with a fake backend. The real backend skeleton keeps the design
+grounded in actual Kubernetes/GPU/runtime integration points without turning the
+prototype into a GPU driver project.
+
 #### Tests
 
 The current repository includes focused unit tests for:
@@ -513,18 +715,60 @@ go test ./...
 
 The following pieces are intentionally left for later versions:
 
-- real GPU/MIG enforcement;
-- real KV cache and token budget control through vLLM, SGLang, TGI, or other
-  runtimes;
-- Dynamic Resource Allocation integration;
-- kubelet or CRI integration;
-- request-level routing;
-- production-grade time-window policy;
-- production-grade SLO risk estimation;
-- learned scheduling policy;
-- full scheduler deployment manifests;
-- full agent DaemonSet and RBAC manifests;
-- end-to-end evaluation with replayed or synthetic AI workload traces.
+#### Central Scheduler
+
+- Strong reservation consistency when many Pods are scheduled concurrently.
+  The current `Reserve` plugin writes `AIResourceAllocation`, but a future
+  version should maintain a stronger scheduler-side reserved cache or conflict
+  retry mechanism.
+- Resource accounting that combines `AINodeResourceProfile.status.available`
+  with scheduler-side in-flight reservations. This reduces dependence on node
+  status update latency.
+- Preemption and reclaim planning. The current scheduler checks whether a node
+  supports reclaim, throttle, pause, or eviction, but it does not yet decide
+  which lower-priority allocations should be reclaimed.
+- Global placement policy for online/offline pools, spreading, consolidation,
+  peak-window reservation, and future demand.
+- Production-grade SLO risk input. The current scheduler consumes `SLORisk`
+  from node status, but the full metrics pipeline from Prometheus/runtime
+  metrics is still future work.
+- Failure recovery and degradation decisions for unschedulable workloads, such
+  as waiting for a window, requesting reclaim, or relaxing preferred resources.
+
+#### Node-side Agent
+
+- Real node-local resource arbitration. The current `BuildPlans` implementation
+  validates allocations and chooses fallback actions, but it does not yet
+  compute an optimal resource redistribution plan.
+- Priority-aware reclaim order, including how much to throttle, which batch job
+  to pause, and when eviction is justified.
+- Borrowing and reclaim loops. Low-priority workloads should be able to borrow
+  idle capacity, and high-priority workloads should reclaim it when pressure
+  rises.
+- Resume and expansion after pressure drops. Throttled or paused workloads
+  should be restored when resources become available.
+- Real backend execution for GPU, MIG, KV cache, token throughput, runtime
+  concurrency, and Kubernetes eviction.
+- Rich status feedback from the agent to `AIResourceAllocation.status` and
+  `AINodeResourceProfile.status`, including actual resources, action outcome,
+  pressure, SLO risk, and failure reason.
+- Conflict protocol between central scheduling and node-local arbitration. If
+  the central scheduler places a workload but the agent cannot safely apply it,
+  the allocation should become degraded/rejected and trigger rescheduling or
+  reclaim.
+
+#### Evaluation and Research
+
+- A fake end-to-end demo with multiple workload profiles, fake node resource
+  profiles, scheduled Pods, generated allocations, and agent-applied status.
+- Baseline comparison against Kubernetes default scheduling, static priority,
+  least-loaded placement, and time-aware-only variants.
+- Metrics such as GPU utilization, high-priority SLO violation rate, TTFT,
+  p95/p99 latency, offline job completion time, throttle/pause/evict count,
+  scheduling latency, fairness, and resource waste.
+- Learned scheduling policy or learned workload-interference model.
+- Request-level routing with sampling-based decisions, queue depth, prefix/KV
+  locality, and token-cost awareness.
 
 ## Roadmap
 

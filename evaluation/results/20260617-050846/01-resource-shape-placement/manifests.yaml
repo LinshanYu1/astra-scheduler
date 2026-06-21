@@ -1,0 +1,182 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-decode-chat
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-decode-chat
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  slo:
+    ttftP95Ms: 800
+    latencyP99Ms: 3000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1200
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 24
+      decodeTokensPerSecond: 3500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 40
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 5000
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-prefill-embedding
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-prefill-embedding
+    namespace: astra-eval
+  workloadType: offline
+  priority: low
+  demandShape: prefill_heavy
+  slo:
+    deadlineHours: 24
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 8
+      prefillTokensPerSecond: 1200
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 40
+      kvCacheGiB: 12
+      prefillTokensPerSecond: 5000
+  policy:
+    allowBorrowing: true
+    throttleable: true
+    pauseable: true
+    evictable: true
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-kv-agent
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-kv-agent
+    namespace: astra-eval
+  workloadType: online
+  priority: medium
+  demandShape: kv_heavy
+  slo:
+    ttftP95Ms: 1200
+    latencyP99Ms: 5000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 24
+      decodeTokensPerSecond: 800
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 64
+      decodeTokensPerSecond: 1500
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-decode-chat
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-decode-chat
+  template:
+    metadata:
+      labels:
+        app: eval-decode-chat
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-decode-chat
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-prefill-embedding
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-prefill-embedding
+  template:
+    metadata:
+      labels:
+        app: eval-prefill-embedding
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-prefill-embedding
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-kv-agent
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-kv-agent
+  template:
+    metadata:
+      labels:
+        app: eval-kv-agent
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-kv-agent
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent

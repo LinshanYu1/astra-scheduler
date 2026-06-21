@@ -1,0 +1,140 @@
+apiVersion: v1
+items:
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AIResourceAllocation
+  metadata:
+    creationTimestamp: "2026-06-17T05:09:33Z"
+    generation: 1
+    labels:
+      astra.aiinfra.io/managed-by: astra-scheduler
+      astra.aiinfra.io/node-name: master0
+      astra.aiinfra.io/priority: high
+      astra.aiinfra.io/workload-name: eval-live-moderation-5ff9cd648-z9fjj
+      astra.aiinfra.io/workload-namespace: astra-eval
+    name: eval-live-moderation-5ff9cd648-z9fjj-906dfd31
+    namespace: astra-eval
+    resourceVersion: "3320098"
+    uid: 4863d039-adc0-4dee-af7b-1380ada609ee
+  spec:
+    actions: {}
+    allocationType: preferred
+    demandShape: decode_heavy
+    nodeName: master0
+    priority: high
+    reason: preferredMatched=4/4 keyResource=decodeTokensPerSecond keyPreferredMatched=true
+      keyHeadroom=2500 otherHeadroom=100 weightedHeadroom=100 timeMultiplier=1.02
+      timeReason=node has no existing workload window mixMultiplier=1.00 mixReason=demandShape=decode_heavy
+      count=0 max=0 runtimeRiskPenalty=0 extraScore=0 extraMultiplier=1.00 extraPenalty=0
+      contributions=[PreferredCoverageScorer=preferredMatched=4/4; KeyResourceHeadroomScorer=decodeTokensPerSecond;
+      TimeWindowScorer=node has no existing workload window; WorkloadMixScorer=demandShape=decode_heavy
+      count=0 max=0; SLORiskScorer=runtimeRiskPenalty=0]; maxPreferredMatched=4; weightedHeadroomScore=100;
+      adjustedScore=102
+    resourceRequest:
+      max:
+        decodeTokensPerSecond: 4200
+        gpuCount: 1
+        gpuMemoryGiB: 36
+        kvCacheGiB: 48
+      preferred:
+        decodeTokensPerSecond: 2500
+        gpuCount: 1
+        gpuMemoryGiB: 24
+        kvCacheGiB: 32
+      required:
+        decodeTokensPerSecond: 1000
+        gpuCount: 1
+        gpuMemoryGiB: 12
+        kvCacheGiB: 16
+    resources:
+      decodeTokensPerSecond: 2500
+      gpuCount: 1
+      gpuMemoryGiB: 24
+      kvCacheGiB: 32
+    timeWindows:
+    - end: "23:59"
+      name: active-eval-window
+      start: "00:00"
+      timezone: UTC
+    workloadRef:
+      apiVersion: astra.aiinfra.io/v1alpha1
+      kind: AIWorkloadProfile
+      name: eval-live-moderation
+      namespace: astra-eval
+    workloadType: online
+  status:
+    appliedAt: "2026-06-17T05:09:33Z"
+    message: fake backend accepted action "apply" tier="max" targetPhase="PendingApply"
+      reason=local scheduler accepted central allocation; active time window "active-eval-window"
+      requires max budget; assigned max budget
+    observedAt: "2026-06-17T05:09:33Z"
+    observedResources:
+      decodeTokensPerSecond: 4200
+      gpuCount: 1
+      gpuMemoryGiB: 36
+      kvCacheGiB: 48
+    phase: Applied
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AIResourceAllocation
+  metadata:
+    creationTimestamp: "2026-06-17T05:09:33Z"
+    generation: 1
+    labels:
+      astra.aiinfra.io/managed-by: astra-scheduler
+      astra.aiinfra.io/node-name: worker1
+      astra.aiinfra.io/priority: medium
+      astra.aiinfra.io/workload-name: eval-office-agent-654bd9764-4l5hf
+      astra.aiinfra.io/workload-namespace: astra-eval
+    name: eval-office-agent-654bd9764-4l5hf-34aa1081
+    namespace: astra-eval
+    resourceVersion: "3320107"
+    uid: 4f48a5bc-403e-4ecb-ae3b-0595691a1aa6
+  spec:
+    actions: {}
+    allocationType: preferred
+    demandShape: kv_heavy
+    nodeName: worker1
+    priority: medium
+    reason: preferredMatched=4/4 keyResource=kvCacheGiB keyPreferredMatched=true keyHeadroom=64
+      otherHeadroom=100 weightedHeadroom=100 timeMultiplier=1.00 timeReason=workload
+      has no time window mixMultiplier=1.00 mixReason=demandShape=kv_heavy count=0
+      max=0 runtimeRiskPenalty=0 extraScore=0 extraMultiplier=1.00 extraPenalty=0
+      contributions=[PreferredCoverageScorer=preferredMatched=4/4; KeyResourceHeadroomScorer=kvCacheGiB;
+      TimeWindowScorer=workload has no time window; WorkloadMixScorer=demandShape=kv_heavy
+      count=0 max=0; SLORiskScorer=runtimeRiskPenalty=0]; maxPreferredMatched=4; weightedHeadroomScore=100;
+      adjustedScore=100
+    resourceRequest:
+      preferred:
+        decodeTokensPerSecond: 1200
+        gpuCount: 1
+        gpuMemoryGiB: 20
+        kvCacheGiB: 32
+      required:
+        decodeTokensPerSecond: 600
+        gpuCount: 1
+        gpuMemoryGiB: 12
+        kvCacheGiB: 16
+    resources:
+      decodeTokensPerSecond: 1200
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+    workloadRef:
+      apiVersion: astra.aiinfra.io/v1alpha1
+      kind: AIWorkloadProfile
+      name: eval-office-agent
+      namespace: astra-eval
+    workloadType: online
+  status:
+    appliedAt: "2026-06-17T05:09:33Z"
+    message: fake backend accepted action "apply" tier="preferred" targetPhase="PendingApply"
+      reason=local scheduler accepted central allocation; assigned preferred budget
+    observedAt: "2026-06-17T05:09:33Z"
+    observedResources:
+      decodeTokensPerSecond: 1200
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+    phase: Applied
+kind: List
+metadata:
+  resourceVersion: ""

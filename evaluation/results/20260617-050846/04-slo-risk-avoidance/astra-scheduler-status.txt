@@ -1,0 +1,20 @@
+● astra-scheduler.service - Astra Scheduler
+     Loaded: loaded (/etc/systemd/system/astra-scheduler.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 00:46:33 UTC; 4h 24min ago
+   Main PID: 38651 (astra-scheduler)
+      Tasks: 9 (limit: 9366)
+     Memory: 20.0M (peak: 20.7M)
+        CPU: 25.225s
+     CGroup: /system.slice/astra-scheduler.service
+             └─38651 /opt/astra-scheduler/bin/astra-scheduler --config=/etc/astra-scheduler/scheduler-config.yaml --kubeconfig=/etc/astra-scheduler/kubeconfig --secure-port=10260 --v=4
+
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.044929   38651 batch.go:168] "OpportunisticBatch found unusable state" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn" profile="astra-scheduler" cycleCount=24 reason="pod_not_batchable"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.056796   38651 pod_binding.go:51] "Attempting to bind pod to node" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn" node="master0"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.061869   38651 schedule_one.go:337] "Successfully bound pod to node" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn" node="master0" evaluatedNodes=4 feasibleNodes=4
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.062371   38651 eventhandlers.go:391] "Add event for scheduled pod" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.062399   38651 eventhandlers.go:352] "Delete event for unscheduled pod" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.078451   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.457613   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn"
+Jun 17 05:10:55 master0 astra-scheduler[38651]: I0617 05:10:55.515476   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-risk-sensitive-chat-7d45bb7568-xdgbn"
+Jun 17 05:11:26 master0 astra-scheduler[38651]: I0617 05:11:26.897800   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/billing-api-missing-dependency-57f59fc774-t2qlg"
+Jun 17 05:11:29 master0 astra-scheduler[38651]: I0617 05:11:29.047671   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-crashloop/profile-api-crashloop-6455d4c94c-6j47k"

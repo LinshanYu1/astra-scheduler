@@ -1,0 +1,6 @@
+aiworkloadprofile.astra.aiinfra.io "eval-live-moderation" deleted from astra-eval namespace
+aiworkloadprofile.astra.aiinfra.io "eval-office-agent" deleted from astra-eval namespace
+deployment.apps "eval-live-moderation" deleted from astra-eval namespace
+deployment.apps "eval-office-agent" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-live-moderation-5ff9cd648-z9fjj-906dfd31" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-office-agent-654bd9764-4l5hf-34aa1081" deleted from astra-eval namespace

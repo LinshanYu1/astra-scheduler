@@ -1,0 +1,3 @@
+NAME                                   READY   STATUS    RESTARTS   AGE   IP            NODE      NOMINATED NODE   READINESS GATES
+eval-live-moderation-5ff9cd648-z9fjj   1/1     Running   0          35s   10.244.0.17   master0   <none>           <none>
+eval-office-agent-654bd9764-4l5hf      1/1     Running   0          35s   10.244.4.60   worker1   <none>           <none>

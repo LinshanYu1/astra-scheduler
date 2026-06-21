@@ -1,0 +1,3 @@
+NAME                                            WORKLOAD               NAMESPACE    NODE      TYPE        PHASE     AGE
+eval-live-moderation-5ff9cd648-z9fjj-906dfd31   eval-live-moderation   astra-eval   master0   preferred   Applied   35s
+eval-office-agent-654bd9764-4l5hf-34aa1081      eval-office-agent      astra-eval   worker1   preferred   Applied   35s

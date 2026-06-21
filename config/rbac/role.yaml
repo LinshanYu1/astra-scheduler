@@ -8,4 +8,13 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps"]
   verbs: ["get", "list", "watch"]
+- apiGroups: ["astra.aiinfra.io"]
+  resources: ["ainoderesourceprofiles", "airesourceallocations", "aiworkloadprofiles"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["astra.aiinfra.io"]
+  resources: ["ainoderesourceprofiles/status", "airesourceallocations/status", "aiworkloadprofiles/status"]
+  verbs: ["get", "update", "patch"]

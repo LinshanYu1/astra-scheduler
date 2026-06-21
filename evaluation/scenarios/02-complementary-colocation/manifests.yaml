@@ -1,0 +1,171 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: colo-decode-chat
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: colo-decode-chat
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  slo:
+    ttftP95Ms: 800
+    latencyP99Ms: 3000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 12
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 24
+      kvCacheGiB: 24
+      decodeTokensPerSecond: 3500
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: colo-prefill-embedding
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: colo-prefill-embedding
+    namespace: astra-eval
+  workloadType: offline
+  priority: low
+  demandShape: prefill_heavy
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 12
+      kvCacheGiB: 8
+      prefillTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 32
+      kvCacheGiB: 16
+      prefillTokensPerSecond: 5000
+  policy:
+    allowBorrowing: true
+    allowReclaimFromLowerPriority: false
+    throttleable: true
+    pauseable: true
+    evictable: true
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: colo-kv-agent
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: colo-kv-agent
+    namespace: astra-eval
+  workloadType: online
+  priority: medium
+  demandShape: kv_heavy
+  slo:
+    ttftP95Ms: 1200
+    latencyP99Ms: 5000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 12
+      kvCacheGiB: 24
+      decodeTokensPerSecond: 500
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 24
+      kvCacheGiB: 64
+      decodeTokensPerSecond: 1200
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: false
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colo-decode-chat
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: colo-decode-chat
+  template:
+    metadata:
+      labels:
+        app: colo-decode-chat
+      annotations:
+        astra.aiinfra.io/workload-profile: colo-decode-chat
+    spec:
+      schedulerName: astra-scheduler
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colo-prefill-embedding
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: colo-prefill-embedding
+  template:
+    metadata:
+      labels:
+        app: colo-prefill-embedding
+      annotations:
+        astra.aiinfra.io/workload-profile: colo-prefill-embedding
+    spec:
+      schedulerName: astra-scheduler
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colo-kv-agent
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: colo-kv-agent
+  template:
+    metadata:
+      labels:
+        app: colo-kv-agent
+      annotations:
+        astra.aiinfra.io/workload-profile: colo-kv-agent
+    spec:
+      schedulerName: astra-scheduler
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+

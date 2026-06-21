@@ -1,0 +1,10 @@
+# Apply phase1-low.yaml first, wait until the low-priority allocation is Applied,
+# then apply phase2-peak.yaml.
+#
+# This file is intentionally a pointer for tools that expect manifests.yaml.
+# The real scenario is two-phase and should be run with:
+#
+#   kubectl apply -f phase1-low.yaml
+#   sleep 15
+#   kubectl apply -f phase2-peak.yaml
+

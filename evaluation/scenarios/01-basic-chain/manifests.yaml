@@ -1,0 +1,58 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: basic-chain-chat
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basic-chain-chat
+    namespace: astra-eval
+  workloadType: online
+  priority: medium
+  demandShape: decode_heavy
+  slo:
+    ttftP95Ms: 1000
+    latencyP99Ms: 4000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 8
+      decodeTokensPerSecond: 500
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1500
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: false
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: basic-chain-chat
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: basic-chain-chat
+  template:
+    metadata:
+      labels:
+        app: basic-chain-chat
+      annotations:
+        astra.aiinfra.io/workload-profile: basic-chain-chat
+    spec:
+      schedulerName: astra-scheduler
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+

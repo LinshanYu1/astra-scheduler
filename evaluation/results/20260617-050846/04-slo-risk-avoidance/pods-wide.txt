@@ -1,0 +1,2 @@
+NAME                                        READY   STATUS    RESTARTS   AGE   IP            NODE      NOMINATED NODE   READINESS GATES
+eval-risk-sensitive-chat-7d45bb7568-xdgbn   1/1     Running   0          35s   10.244.0.18   master0   <none>           <none>

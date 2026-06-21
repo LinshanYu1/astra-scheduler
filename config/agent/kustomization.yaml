@@ -1,0 +1,3 @@
+resources:
+- fake-node-resources.yaml
+- daemonset.yaml

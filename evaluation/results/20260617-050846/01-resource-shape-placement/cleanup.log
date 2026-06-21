@@ -1,0 +1,3 @@
+aiworkloadprofile.astra.aiinfra.io "eval-risk-sensitive-chat" deleted from astra-eval namespace
+deployment.apps "eval-risk-sensitive-chat" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-risk-sensitive-chat-7d45bb7568-js7lr-906dfd31" deleted from astra-eval namespace

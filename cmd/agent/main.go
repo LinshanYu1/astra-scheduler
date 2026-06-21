@@ -47,12 +47,16 @@ func main() {
 	var nodeName string
 	var nodeProfileNamespace string
 	var backendType string
+	var fakeResourceConfigMap string
+	var fakeResourceConfigMapNamespace string
 	var metricsAddr string
 	var probeAddr string
 
 	flag.StringVar(&nodeName, "node-name", os.Getenv("NODE_NAME"), "Kubernetes node name served by this agent.")
 	flag.StringVar(&nodeProfileNamespace, "node-profile-namespace", "astra-system", "Namespace containing AINodeResourceProfile objects.")
 	flag.StringVar(&backendType, "backend", "fake", "Node backend implementation: fake, nvidia, runtime, cri.")
+	flag.StringVar(&fakeResourceConfigMap, "fake-resource-configmap", os.Getenv("FAKE_RESOURCE_CONFIGMAP"), "Optional ConfigMap name used by the fake backend to override node resources.")
+	flag.StringVar(&fakeResourceConfigMapNamespace, "fake-resource-configmap-namespace", os.Getenv("FAKE_RESOURCE_CONFIGMAP_NAMESPACE"), "Namespace of the fake resource ConfigMap. Defaults to --node-profile-namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metrics endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the health probe endpoint binds to.")
 
@@ -67,10 +71,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	nodeBackend, err := backend.New(backendType)
-	if err != nil {
-		setupLog.Error(err, "Failed to create agent backend")
-		os.Exit(1)
+	if fakeResourceConfigMapNamespace == "" {
+		fakeResourceConfigMapNamespace = nodeProfileNamespace
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -83,9 +85,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	nodeBackend, err := backend.NewWithOptions(backendType, backend.Options{
+		Client:             mgr.GetClient(),
+		NodeName:           nodeName,
+		ConfigMapName:      fakeResourceConfigMap,
+		ConfigMapNamespace: fakeResourceConfigMapNamespace,
+	})
+	if err != nil {
+		setupLog.Error(err, "Failed to create agent backend")
+		os.Exit(1)
+	}
+
 	reconciler := agent.NewReconciler(agent.Config{
-		NodeName:             nodeName,
-		NodeProfileNamespace: nodeProfileNamespace,
+		NodeName:                nodeName,
+		NodeProfileNamespace:    nodeProfileNamespace,
+		FakeResourceConfigMap:   fakeResourceConfigMap,
+		FakeResourceConfigMapNS: fakeResourceConfigMapNamespace,
 	}, mgr.GetClient(), nodeBackend)
 
 	if err := reconciler.SetupWithManager(mgr); err != nil {
@@ -101,7 +116,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("Starting Astra agent", "nodeName", nodeName, "backend", backendType)
+	setupLog.Info("Starting Astra agent", "nodeName", nodeName, "backend", backendType, "fakeResourceConfigMap", fakeResourceConfigMap)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "Failed to run agent")
 		os.Exit(1)

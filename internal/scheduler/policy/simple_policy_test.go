@@ -57,6 +57,67 @@ func TestNormalizeScoreDetailsSubtractsRuntimeRisk(t *testing.T) {
 	}
 }
 
+type testBonusScorer struct{}
+
+func (testBonusScorer) Name() string {
+	return "testBonusScorer"
+}
+
+func (testBonusScorer) Score(ScoringContext) ScoreContribution {
+	return ScoreContribution{
+		Name:   testBonusScorer{}.Name(),
+		Score:  10,
+		Reason: "test bonus",
+	}
+}
+
+func TestSimplePolicyAcceptsCustomScorer(t *testing.T) {
+	p := NewSimplePolicyWithScorers(
+		PreferredCoverageScorer{},
+		KeyResourceHeadroomScorer{},
+		testBonusScorer{},
+	)
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeKVHeavy)
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:              1,
+		GPUMemoryGiB:          20,
+		KVCacheGiB:            32,
+		DecodeTokensPerSecond: 2500,
+	})
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.ExtraScore != 10 {
+		t.Fatalf("expected custom scorer to add extra score, got %d", detail.ExtraScore)
+	}
+
+	decisions := p.NormalizeScoreDetails(map[string]NodeScoreDetail{"node-a": detail})
+	if decisions["node-a"].Score <= detail.WeightedHeadroomScore {
+		t.Fatalf("expected custom scorer to increase final score, weighted=%d final=%d", detail.WeightedHeadroomScore, decisions["node-a"].Score)
+	}
+}
+
+func TestSimplePolicyAcceptsCustomDemandShapeMapping(t *testing.T) {
+	p := NewSimplePolicyWithScoreComposerOptions(ScoreComposerOptions{
+		DemandShapeMapping: DemandShapeResourceMapping{
+			astrav1alpha1.DemandShapeKVHeavy: {
+				astrav1alpha1.ResourceDecodeTokensPerSec: 0.4,
+			},
+		},
+	})
+	profile := scoreTestProfile(astrav1alpha1.DemandShapeKVHeavy)
+	node := scoreTestNode("node-a", "low", astrav1alpha1.ResourceSummary{
+		GPUCount:              1,
+		GPUMemoryGiB:          20,
+		KVCacheGiB:            32,
+		DecodeTokensPerSecond: 5000,
+	})
+
+	detail := p.ScoreDetail(profile, node)
+	if detail.KeyResource != string(astrav1alpha1.ResourceDecodeTokensPerSec) {
+		t.Fatalf("expected custom mapping to focus decode throughput, got %s", detail.KeyResource)
+	}
+}
+
 func TestNormalizeScoreDetailsUsesWeightedHeadroomWhenCoverageTies(t *testing.T) {
 	p := NewSimplePolicy()
 

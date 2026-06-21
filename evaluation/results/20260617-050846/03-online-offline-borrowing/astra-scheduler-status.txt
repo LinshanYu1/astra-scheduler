@@ -1,0 +1,20 @@
+● astra-scheduler.service - Astra Scheduler
+     Loaded: loaded (/etc/systemd/system/astra-scheduler.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 00:46:33 UTC; 4h 24min ago
+   Main PID: 38651 (astra-scheduler)
+      Tasks: 9 (limit: 9366)
+     Memory: 19.9M (peak: 20.4M)
+        CPU: 25.166s
+     CGroup: /system.slice/astra-scheduler.service
+             └─38651 /opt/astra-scheduler/bin/astra-scheduler --config=/etc/astra-scheduler/scheduler-config.yaml --kubeconfig=/etc/astra-scheduler/kubeconfig --secure-port=10260 --v=4
+
+Jun 17 05:10:17 master0 astra-scheduler[38651]: I0617 05:10:17.832546   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/billing-api-missing-dependency-57f59fc774-t2qlg"
+Jun 17 05:10:22 master0 astra-scheduler[38651]: I0617 05:10:22.997319   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/notification-worker-missing-dependency-798b67d458-z92lr"
+Jun 17 05:10:27 master0 astra-scheduler[38651]: I0617 05:10:27.068370   38651 eventhandlers.go:83] "Update event for node" node="worker0"
+Jun 17 05:10:27 master0 astra-scheduler[38651]: I0617 05:10:27.898272   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-registry/billing-image-puller-d99dfb7cf-w8tjc"
+Jun 17 05:10:28 master0 astra-scheduler[38651]: I0617 05:10:28.998822   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="monitoring/job-dispatcher-694bcc8888-fptp7"
+Jun 17 05:10:41 master0 astra-scheduler[38651]: I0617 05:10:41.005787   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="monitoring/job-dispatcher-694bcc8888-fptp7"
+Jun 17 05:10:45 master0 astra-scheduler[38651]: I0617 05:10:45.740181   38651 reflector.go:991] "Watch close" reflector="pkg/mod/k8s.io/client-go@v0.35.0/tools/cache/reflector.go:289" type="*v1.Namespace" totalItems=11
+Jun 17 05:10:47 master0 astra-scheduler[38651]: I0617 05:10:47.745383   38651 reflector.go:991] "Watch close" reflector="pkg/mod/k8s.io/client-go@v0.35.0/tools/cache/reflector.go:289" type="*v1.Service" totalItems=9
+Jun 17 05:10:47 master0 astra-scheduler[38651]: I0617 05:10:47.993336   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/checkout-api-missing-dependency-6ff5874d4b-bdvzp"
+Jun 17 05:10:48 master0 astra-scheduler[38651]: I0617 05:10:48.927866   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/checkout-api-missing-dependency-6ff5874d4b-bdvzp"

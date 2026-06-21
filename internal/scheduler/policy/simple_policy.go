@@ -35,13 +35,26 @@ type NodeScoreDetail struct {
 	MixBalanceMultiplier        float64
 	MixBalanceReason            string
 	RuntimeRiskPenalty          int64
+	ExtraScore                  int64
+	ExtraMultiplier             float64
+	ExtraPenalty                int64
 	Reason                      string
 }
 
-type SimplePolicy struct{}
+type SimplePolicy struct {
+	scoreComposer *ScoreComposer
+}
 
 func NewSimplePolicy() *SimplePolicy {
-	return &SimplePolicy{}
+	return &SimplePolicy{scoreComposer: NewScoreComposer()}
+}
+
+func NewSimplePolicyWithScorers(scorers ...Scorer) *SimplePolicy {
+	return &SimplePolicy{scoreComposer: NewScoreComposer(scorers...)}
+}
+
+func NewSimplePolicyWithScoreComposerOptions(options ScoreComposerOptions) *SimplePolicy {
+	return &SimplePolicy{scoreComposer: NewScoreComposerWithOptions(options)}
 }
 
 func (p *SimplePolicy) Filter(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) FilterDecision {
@@ -90,84 +103,11 @@ func nodeCapabilities(node *astrav1alpha1.AINodeResourceProfile) astrav1alpha1.N
 }
 
 func (p *SimplePolicy) ScoreDetail(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) NodeScoreDetail {
-	detail := NodeScoreDetail{}
-	if node != nil {
-		detail.NodeName = node.Spec.NodeName
-		if detail.NodeName == "" {
-			detail.NodeName = node.Name
-		}
-	}
-
-	available := *node.Status.Available
-	preferred := preferredResources(profile)
-	detail.PreferredMatched, detail.PreferredTotal = preferredMatchCount(preferred, available)
-	detail.KeyResource = string(focusedResourceForDemandShape(profile.Spec.DemandShape))
-	detail.KeyResourcePreferredMatched = keyResourceMatched(detail.KeyResource, preferred, available)
-	detail.KeyResourceHeadroom = keyResourceHeadroom(detail.KeyResource, preferred, available)
-	detail.OtherHeadroomScore = otherHeadroomScore(detail.KeyResource, preferred, available)
-	detail.WeightedHeadroomScore = weightedHeadroomScore(detail.KeyResource, preferred, available)
-	detail.TimeWindowMultiplier, detail.TimeWindowReason = timeWindowMultiplier(profile, node)
-	detail.MixBalanceMultiplier, detail.MixBalanceReason = mixBalanceMultiplier(profile, node)
-	detail.RuntimeRiskPenalty = runtimeRiskPenalty(node)
-	detail.Reason = fmt.Sprintf(
-		"preferredMatched=%d/%d keyResource=%s keyPreferredMatched=%t keyHeadroom=%d otherHeadroom=%d weightedHeadroom=%d timeMultiplier=%.2f timeReason=%s mixMultiplier=%.2f mixReason=%s runtimeRiskPenalty=%d",
-		detail.PreferredMatched,
-		detail.PreferredTotal,
-		detail.KeyResource,
-		detail.KeyResourcePreferredMatched,
-		detail.KeyResourceHeadroom,
-		detail.OtherHeadroomScore,
-		detail.WeightedHeadroomScore,
-		detail.TimeWindowMultiplier,
-		detail.TimeWindowReason,
-		detail.MixBalanceMultiplier,
-		detail.MixBalanceReason,
-		detail.RuntimeRiskPenalty,
-	)
-
-	return detail
+	return p.scoreComposer.BuildDetail(profile, node)
 }
 
 func (p *SimplePolicy) NormalizeScoreDetails(details map[string]NodeScoreDetail) map[string]ScoreDecision {
-	decisions := make(map[string]ScoreDecision, len(details))
-	if len(details) == 0 {
-		return decisions
-	}
-
-	maxPreferredMatched := 0
-	for _, detail := range details {
-		if detail.PreferredMatched > maxPreferredMatched {
-			maxPreferredMatched = detail.PreferredMatched
-		}
-	}
-
-	for nodeName, detail := range details {
-		score := applyMultiplier(detail.WeightedHeadroomScore, detail.TimeWindowMultiplier)
-		score = applyMultiplier(score, detail.MixBalanceMultiplier)
-		reasonParts := []string{
-			detail.Reason,
-			fmt.Sprintf("maxPreferredMatched=%d", maxPreferredMatched),
-			fmt.Sprintf("weightedHeadroomScore=%d", detail.WeightedHeadroomScore),
-			fmt.Sprintf("timeAndMixAdjustedScore=%d", score),
-		}
-
-		if detail.PreferredMatched < maxPreferredMatched {
-			score = score / 2
-			reasonParts = append(reasonParts, "belowBestPreferredTier=true")
-		}
-
-		score -= detail.RuntimeRiskPenalty
-		if detail.RuntimeRiskPenalty > 0 {
-			reasonParts = append(reasonParts, fmt.Sprintf("runtimeRiskPenalty=%d", detail.RuntimeRiskPenalty))
-		}
-
-		decisions[nodeName] = ScoreDecision{
-			Score:  clampScore(score),
-			Reason: strings.Join(reasonParts, "; "),
-		}
-	}
-
-	return decisions
+	return p.scoreComposer.Normalize(details)
 }
 
 func (p *SimplePolicy) AllocationResources(profile *astrav1alpha1.AIWorkloadProfile, node *astrav1alpha1.AINodeResourceProfile) astrav1alpha1.ResourceSummary {
@@ -251,19 +191,6 @@ func preferredMatchCount(preferred, available astrav1alpha1.ResourceSummary) (in
 	}
 
 	return matched, total
-}
-
-func focusedResourceForDemandShape(demandShape astrav1alpha1.DemandShape) astrav1alpha1.ResourceName {
-	switch demandShape {
-	case astrav1alpha1.DemandShapeDecodeHeavy:
-		return astrav1alpha1.ResourceDecodeTokensPerSec
-	case astrav1alpha1.DemandShapePrefillHeavy:
-		return astrav1alpha1.ResourcePrefillTokensPerSec
-	case astrav1alpha1.DemandShapeKVHeavy:
-		return astrav1alpha1.ResourceKVCacheGiB
-	default:
-		return astrav1alpha1.ResourceBalancedResourceFocus
-	}
 }
 
 func keyResourceMatched(key string, preferred, available astrav1alpha1.ResourceSummary) bool {
@@ -492,11 +419,13 @@ func canCurrentWorkloadReclaimFrom(profile *astrav1alpha1.AIWorkloadProfile, all
 }
 
 func isOnlineWorkload(workloadType string) bool {
-	return strings.EqualFold(workloadType, "online") || strings.EqualFold(workloadType, "hybrid")
+	return strings.EqualFold(workloadType, string(astrav1alpha1.WorkloadTypeOnline)) ||
+		strings.EqualFold(workloadType, string(astrav1alpha1.WorkloadTypeHybrid))
 }
 
 func isDelayTolerantWorkload(workloadType string) bool {
-	return strings.EqualFold(workloadType, "offline") || strings.EqualFold(workloadType, "batch")
+	return strings.EqualFold(workloadType, string(astrav1alpha1.WorkloadTypeOffline)) ||
+		strings.EqualFold(workloadType, string(astrav1alpha1.WorkloadTypeBatch))
 }
 
 func higherPriority(left, right string) bool {
@@ -505,11 +434,13 @@ func higherPriority(left, right string) bool {
 
 func priorityRank(priority string) int {
 	switch strings.ToLower(priority) {
-	case "high":
+	case string(astrav1alpha1.WorkloadPriorityCritical):
+		return 4
+	case string(astrav1alpha1.WorkloadPriorityHigh):
 		return 3
-	case "medium":
+	case string(astrav1alpha1.WorkloadPriorityMedium):
 		return 2
-	case "low":
+	case string(astrav1alpha1.WorkloadPriorityLow):
 		return 1
 	default:
 		return 0
@@ -593,16 +524,6 @@ func applyMultiplier(score int64, multiplier float64) int64 {
 	return int64(math.Round(float64(score) * multiplier))
 }
 
-func resourceHeadroomWeight(key, resourceName string) float64 {
-	if key == string(astrav1alpha1.ResourceBalancedResourceFocus) || key == "" {
-		return 0.4
-	}
-	if resourceName == key {
-		return 0.4
-	}
-	return 0.3
-}
-
 func normalizedHeadroom(available, preferred int32) float64 {
 	if preferred <= 0 || available <= preferred {
 		return 0
@@ -620,33 +541,13 @@ func runtimeRiskPenalty(node *astrav1alpha1.AINodeResourceProfile) int64 {
 	}
 
 	switch strings.ToLower(node.Status.Runtime.Pressure.SLORisk) {
-	case "high":
+	case string(astrav1alpha1.SLORiskHigh):
 		return 15
-	case "medium":
+	case string(astrav1alpha1.SLORiskMedium):
 		return 8
 	default:
 		return 0
 	}
-}
-
-func preferredCoverageScore(detail NodeScoreDetail, maxPreferredMatched int) int64 {
-	if maxPreferredMatched == 0 {
-		return 70
-	}
-	if detail.PreferredMatched < maxPreferredMatched {
-		return int64(detail.PreferredMatched) * 49 / int64(maxPreferredMatched)
-	}
-	return 70
-}
-
-func proportionalBonus(value, maxValue, maxBonus int64) int64 {
-	if value <= 0 || maxValue <= 0 || maxBonus <= 0 {
-		return 0
-	}
-	if value >= maxValue {
-		return maxBonus
-	}
-	return value * maxBonus / maxValue
 }
 
 func reject(resource string, required, available int32) FilterDecision {

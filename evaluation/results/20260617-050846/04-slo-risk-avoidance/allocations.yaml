@@ -1,0 +1,71 @@
+apiVersion: v1
+items:
+- apiVersion: astra.aiinfra.io/v1alpha1
+  kind: AIResourceAllocation
+  metadata:
+    creationTimestamp: "2026-06-17T05:10:55Z"
+    generation: 1
+    labels:
+      astra.aiinfra.io/managed-by: astra-scheduler
+      astra.aiinfra.io/node-name: master0
+      astra.aiinfra.io/priority: high
+      astra.aiinfra.io/workload-name: eval-risk-sensitive-chat-7d45bb7568-xdgbn
+      astra.aiinfra.io/workload-namespace: astra-eval
+    name: eval-risk-sensitive-chat-7d45bb7568-xdgbn-906dfd31
+    namespace: astra-eval
+    resourceVersion: "3320464"
+    uid: 178926d8-c36f-4e81-a65e-2a50dac7812b
+  spec:
+    actions: {}
+    allocationType: preferred
+    demandShape: mixed
+    nodeName: master0
+    priority: high
+    reason: preferredMatched=5/5 keyResource=balanced keyPreferredMatched=false keyHeadroom=92
+      otherHeadroom=92 weightedHeadroom=92 timeMultiplier=1.00 timeReason=workload
+      has no time window mixMultiplier=1.00 mixReason=mixed workload has no focused
+      resource shape runtimeRiskPenalty=0 extraScore=0 extraMultiplier=1.00 extraPenalty=0
+      contributions=[PreferredCoverageScorer=preferredMatched=5/5; KeyResourceHeadroomScorer=balanced;
+      TimeWindowScorer=workload has no time window; WorkloadMixScorer=mixed workload
+      has no focused resource shape; SLORiskScorer=runtimeRiskPenalty=0]; maxPreferredMatched=5;
+      weightedHeadroomScore=92; adjustedScore=92
+    resourceRequest:
+      preferred:
+        decodeTokensPerSecond: 2500
+        gpuCount: 1
+        gpuMemoryGiB: 30
+        kvCacheGiB: 32
+        prefillTokensPerSecond: 2500
+      required:
+        decodeTokensPerSecond: 1000
+        gpuCount: 1
+        gpuMemoryGiB: 20
+        kvCacheGiB: 16
+        prefillTokensPerSecond: 1000
+    resources:
+      decodeTokensPerSecond: 2500
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 32
+      prefillTokensPerSecond: 2500
+    workloadRef:
+      apiVersion: astra.aiinfra.io/v1alpha1
+      kind: AIWorkloadProfile
+      name: eval-risk-sensitive-chat
+      namespace: astra-eval
+    workloadType: online
+  status:
+    appliedAt: "2026-06-17T05:10:55Z"
+    message: fake backend accepted action "apply" tier="preferred" targetPhase="PendingApply"
+      reason=local scheduler accepted central allocation; assigned preferred budget
+    observedAt: "2026-06-17T05:10:55Z"
+    observedResources:
+      decodeTokensPerSecond: 2500
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 32
+      prefillTokensPerSecond: 2500
+    phase: Applied
+kind: List
+metadata:
+  resourceVersion: ""

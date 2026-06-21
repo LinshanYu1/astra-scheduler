@@ -1,0 +1,9 @@
+aiworkloadprofile.astra.aiinfra.io "eval-decode-chat" deleted from astra-eval namespace
+aiworkloadprofile.astra.aiinfra.io "eval-prefill-embedding" deleted from astra-eval namespace
+aiworkloadprofile.astra.aiinfra.io "eval-kv-agent" deleted from astra-eval namespace
+deployment.apps "eval-decode-chat" deleted from astra-eval namespace
+deployment.apps "eval-prefill-embedding" deleted from astra-eval namespace
+deployment.apps "eval-kv-agent" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-decode-chat-7c58f7b588-tcxlk-b13292c5" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-kv-agent-74f59b67b4-j5db8-b13292c5" deleted from astra-eval namespace
+airesourceallocation.astra.aiinfra.io "eval-prefill-embedding-6b879fb958-wl88g-34aa1081" deleted from astra-eval namespace

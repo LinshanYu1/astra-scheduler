@@ -1,0 +1,20 @@
+● astra-scheduler.service - Astra Scheduler
+     Loaded: loaded (/etc/systemd/system/astra-scheduler.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 00:46:33 UTC; 4h 22min ago
+   Main PID: 38651 (astra-scheduler)
+      Tasks: 9 (limit: 9366)
+     Memory: 17.6M (peak: 18.3M)
+        CPU: 25.003s
+     CGroup: /system.slice/astra-scheduler.service
+             └─38651 /opt/astra-scheduler/bin/astra-scheduler --config=/etc/astra-scheduler/scheduler-config.yaml --kubeconfig=/etc/astra-scheduler/kubeconfig --secure-port=10260 --v=4
+
+Jun 17 05:08:52 master0 astra-scheduler[38651]: I0617 05:08:52.982785   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-decode-chat-7c58f7b588-tcxlk"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.011709   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-prefill-embedding-6b879fb958-wl88g"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.061793   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-decode-chat-7c58f7b588-tcxlk"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.071735   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-prefill-embedding-6b879fb958-wl88g"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.073541   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-kv-agent-74f59b67b4-j5db8"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.117619   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-kv-agent-74f59b67b4-j5db8"
+Jun 17 05:08:53 master0 astra-scheduler[38651]: I0617 05:08:53.617314   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-crashloop/auth-api-crashloop-597f8c568-97rwn"
+Jun 17 05:09:15 master0 astra-scheduler[38651]: I0617 05:09:15.085325   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/notification-worker-missing-dependency-798b67d458-z92lr"
+Jun 17 05:09:15 master0 astra-scheduler[38651]: I0617 05:09:15.674185   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-service/notification-worker-missing-dependency-798b67d458-z92lr"
+Jun 17 05:09:20 master0 astra-scheduler[38651]: I0617 05:09:20.724860   38651 reflector.go:991] "Watch close" reflector="pkg/mod/k8s.io/client-go@v0.35.0/tools/cache/reflector.go:289" type="*v1.StorageClass" totalItems=8

@@ -1,0 +1,4 @@
+aiworkloadprofile.astra.aiinfra.io/eval-live-moderation created
+aiworkloadprofile.astra.aiinfra.io/eval-office-agent created
+deployment.apps/eval-live-moderation created
+deployment.apps/eval-office-agent created

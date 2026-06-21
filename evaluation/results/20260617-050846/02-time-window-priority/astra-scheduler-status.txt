@@ -1,0 +1,20 @@
+● astra-scheduler.service - Astra Scheduler
+     Loaded: loaded (/etc/systemd/system/astra-scheduler.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 00:46:33 UTC; 4h 23min ago
+   Main PID: 38651 (astra-scheduler)
+      Tasks: 9 (limit: 9366)
+     Memory: 18.6M (peak: 18.9M)
+        CPU: 25.074s
+     CGroup: /system.slice/astra-scheduler.service
+             └─38651 /opt/astra-scheduler/bin/astra-scheduler --config=/etc/astra-scheduler/scheduler-config.yaml --kubeconfig=/etc/astra-scheduler/kubeconfig --secure-port=10260 --v=4
+
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.475903   38651 eventhandlers.go:391] "Add event for scheduled pod" pod="astra-eval/eval-office-agent-654bd9764-4l5hf"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.475949   38651 eventhandlers.go:352] "Delete event for unscheduled pod" pod="astra-eval/eval-office-agent-654bd9764-4l5hf"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.476002   38651 schedule_one.go:337] "Successfully bound pod to node" pod="astra-eval/eval-office-agent-654bd9764-4l5hf" node="worker1" evaluatedNodes=4 feasibleNodes=4
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.493503   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-office-agent-654bd9764-4l5hf"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.852829   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-live-moderation-5ff9cd648-z9fjj"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.885726   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-office-agent-654bd9764-4l5hf"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.921431   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-live-moderation-5ff9cd648-z9fjj"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.944210   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="astra-eval/eval-office-agent-654bd9764-4l5hf"
+Jun 17 05:09:33 master0 astra-scheduler[38651]: I0617 05:09:33.997937   38651 eventhandlers.go:424] "Update event for scheduled pod" pod="real-alert-crashloop/notification-worker-crashloop-56869f4d7-d88zw"
+Jun 17 05:09:47 master0 astra-scheduler[38651]: I0617 05:09:47.333285   38651 eventhandlers.go:83] "Update event for node" node="master0"

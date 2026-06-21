@@ -1,0 +1,4 @@
+aiworkloadprofile.astra.aiinfra.io/eval-chat-service created
+aiworkloadprofile.astra.aiinfra.io/eval-batch-embedding created
+deployment.apps/eval-chat-service created
+deployment.apps/eval-batch-embedding created

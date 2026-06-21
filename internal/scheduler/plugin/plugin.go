@@ -38,7 +38,9 @@ func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framewor
 		return nil, err
 	}
 
-	client, err := ctrlclient.New(handle.KubeConfig(), ctrlclient.Options{Scheme: scheme})
+	config := handle.KubeConfig()
+	config.ContentConfig.ContentType = "application/json"
+	client, err := ctrlclient.New(config, ctrlclient.Options{Scheme: scheme})
 	if err != nil {
 		return nil, err
 	}

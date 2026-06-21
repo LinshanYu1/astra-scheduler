@@ -1,0 +1,60 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-risk-sensitive-chat
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-risk-sensitive-chat
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: mixed
+  slo:
+    ttftP95Ms: 600
+    latencyP99Ms: 2500
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 16
+      prefillTokensPerSecond: 1000
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 32
+      prefillTokensPerSecond: 2500
+      decodeTokensPerSecond: 2500
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-risk-sensitive-chat
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-risk-sensitive-chat
+  template:
+    metadata:
+      labels:
+        app: eval-risk-sensitive-chat
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-risk-sensitive-chat
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent

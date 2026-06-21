@@ -1,0 +1,118 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-chat-service
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-chat-service
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  slo:
+    ttftP95Ms: 800
+    latencyP99Ms: 3000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 24
+      decodeTokensPerSecond: 1200
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 40
+      decodeTokensPerSecond: 3000
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+---
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: eval-batch-embedding
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eval-batch-embedding
+    namespace: astra-eval
+  workloadType: offline
+  priority: low
+  demandShape: prefill_heavy
+  slo:
+    deadlineHours: 12
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 16
+      kvCacheGiB: 8
+      prefillTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 64
+      kvCacheGiB: 16
+      prefillTokensPerSecond: 6000
+  policy:
+    allowBorrowing: true
+    throttleable: true
+    pauseable: true
+    evictable: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-chat-service
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-chat-service
+  template:
+    metadata:
+      labels:
+        app: eval-chat-service
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-chat-service
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-batch-embedding
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-batch-embedding
+  template:
+    metadata:
+      labels:
+        app: eval-batch-embedding
+      annotations:
+        astra.aiinfra.io/workload-profile: eval-batch-embedding
+    spec:
+      schedulerName: astra-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent

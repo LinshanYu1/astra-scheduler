@@ -1,0 +1,74 @@
+apiVersion: astra.aiinfra.io/v1alpha1
+kind: AIWorkloadProfile
+metadata:
+  name: peak-live-master0
+  namespace: astra-eval
+spec:
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: peak-live-master0
+    namespace: astra-eval
+  workloadType: online
+  priority: high
+  demandShape: decode_heavy
+  timeWindows:
+    - name: always-on-peak
+      start: "00:00"
+      end: "00:00"
+      timezone: UTC
+  slo:
+    ttftP95Ms: 800
+    latencyP99Ms: 3000
+  resources:
+    required:
+      gpuCount: 1
+      gpuMemoryGiB: 10
+      kvCacheGiB: 16
+      decodeTokensPerSecond: 1000
+    preferred:
+      gpuCount: 1
+      gpuMemoryGiB: 20
+      kvCacheGiB: 32
+      decodeTokensPerSecond: 2500
+    max:
+      gpuCount: 1
+      gpuMemoryGiB: 30
+      kvCacheGiB: 48
+      decodeTokensPerSecond: 4000
+  policy:
+    allowBorrowing: false
+    allowReclaimFromLowerPriority: true
+    throttleable: false
+    pauseable: false
+    evictable: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: peak-live-master0
+  namespace: astra-eval
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: peak-live-master0
+  template:
+    metadata:
+      labels:
+        app: peak-live-master0
+      annotations:
+        astra.aiinfra.io/workload-profile: peak-live-master0
+    spec:
+      schedulerName: astra-scheduler
+      nodeSelector:
+        kubernetes.io/hostname: master0
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10.1
+          imagePullPolicy: IfNotPresent
+

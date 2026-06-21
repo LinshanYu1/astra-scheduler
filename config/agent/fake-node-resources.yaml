@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fake-node-resources
+  namespace: system
+  labels:
+    app.kubernetes.io/name: astra-scheduler
+    app.kubernetes.io/component: astra-agent
+data:
+  node-a.yaml: |
+    allocatable:
+      gpuCount: 4
+      gpuMemoryGiB: 320
+      kvCacheGiB: 128
+      prefillTokensPerSecond: 6000
+      decodeTokensPerSecond: 9000
+      totalTokensPerSecond: 12000
+    runtime:
+      pressure:
+        sloRisk: low
+        queueDepth: 2
+  node-b.yaml: |
+    allocatable:
+      gpuCount: 2
+      gpuMemoryGiB: 160
+      kvCacheGiB: 64
+      prefillTokensPerSecond: 3000
+      decodeTokensPerSecond: 4500
+      totalTokensPerSecond: 6000
+    runtime:
+      pressure:
+        sloRisk: medium
+        queueDepth: 6

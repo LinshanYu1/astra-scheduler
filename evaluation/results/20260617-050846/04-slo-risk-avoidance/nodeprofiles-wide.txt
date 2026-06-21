@@ -1,0 +1,5 @@
+NAME      NODE      BACKEND   PHASE   GPU   KVCACHE   AGE
+master0   master0   fake      Ready   1     32        4h33m
+master1   master1   fake      Ready   2     48        52m
+worker0   worker0   fake      Ready   4     128       52m
+worker1   worker1   fake      Ready   3     96        52m

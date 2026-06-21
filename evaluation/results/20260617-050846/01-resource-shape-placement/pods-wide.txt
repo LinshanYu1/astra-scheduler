@@ -1,0 +1,4 @@
+NAME                                      READY   STATUS    RESTARTS   AGE   IP            NODE      NOMINATED NODE   READINESS GATES
+eval-decode-chat-7c58f7b588-tcxlk         1/1     Running   0          35s   10.244.2.64   worker0   <none>           <none>
+eval-kv-agent-74f59b67b4-j5db8            1/1     Running   0          35s   10.244.2.65   worker0   <none>           <none>
+eval-prefill-embedding-6b879fb958-wl88g   1/1     Running   0          35s   10.244.4.59   worker1   <none>           <none>

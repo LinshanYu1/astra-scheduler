@@ -1,0 +1,18 @@
+● astra-agent@master0.service - Astra Agent for master0
+     Loaded: loaded (/etc/systemd/system/astra-agent@.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 05:03:21 UTC; 7min ago
+   Main PID: 106372 (astra-agent)
+      Tasks: 9 (limit: 9366)
+     Memory: 13.2M (peak: 14.2M)
+        CPU: 597ms
+     CGroup: /system.slice/system-astra\x2dagent.slice/astra-agent@master0.service
+             └─106372 /opt/astra-scheduler/bin/astra-agent --backend=fake --node-name=master0 --node-profile-namespace=astra-scheduler-system --fake-resource-configmap=astra-scheduler-fake-node-resources --fake-resource-configmap-namespace=astra-scheduler-system --metrics-bind-address=0 --health-probe-bind-address=:8081
+
+Jun 17 05:03:21 master0 systemd[1]: Started astra-agent@master0.service - Astra Agent for master0.
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        setup        Starting Astra agent        {"nodeName": "master0", "backend": "fake", "fakeResourceConfigMap": "astra-scheduler-fake-node-resources"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        starting server        {"name": "health probe", "addr": "[::]:8081"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        Starting EventSource        {"controller": "airesourceallocation", "controllerGroup": "astra.aiinfra.io", "controllerKind": "AIResourceAllocation", "source": "kind source: *v1.ConfigMap"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        Starting EventSource        {"controller": "airesourceallocation", "controllerGroup": "astra.aiinfra.io", "controllerKind": "AIResourceAllocation", "source": "kind source: *v1alpha1.AIResourceAllocation"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        Starting EventSource        {"controller": "airesourceallocation", "controllerGroup": "astra.aiinfra.io", "controllerKind": "AIResourceAllocation", "source": "kind source: *v1alpha1.AINodeResourceProfile"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        Starting Controller        {"controller": "airesourceallocation", "controllerGroup": "astra.aiinfra.io", "controllerKind": "AIResourceAllocation"}
+Jun 17 05:03:21 master0 astra-agent[106372]: 2026-06-17T05:03:21Z        INFO        Starting workers        {"controller": "airesourceallocation", "controllerGroup": "astra.aiinfra.io", "controllerKind": "AIResourceAllocation", "worker count": 1}
