@@ -47,6 +47,24 @@ func addResourceSummary(left, right astrav1alpha1.ResourceSummary) astrav1alpha1
 	}
 }
 
+func subtractResourceSummary(left, right astrav1alpha1.ResourceSummary) astrav1alpha1.ResourceSummary {
+	return astrav1alpha1.ResourceSummary{
+		GPUCount:               nonNegative(left.GPUCount - right.GPUCount),
+		GPUMemoryGiB:           nonNegative(left.GPUMemoryGiB - right.GPUMemoryGiB),
+		KVCacheGiB:             nonNegative(left.KVCacheGiB - right.KVCacheGiB),
+		PrefillTokensPerSecond: nonNegative(left.PrefillTokensPerSecond - right.PrefillTokensPerSecond),
+		DecodeTokensPerSecond:  nonNegative(left.DecodeTokensPerSecond - right.DecodeTokensPerSecond),
+		TotalTokensPerSecond:   nonNegative(left.TotalTokensPerSecond - right.TotalTokensPerSecond),
+	}
+}
+
+func nonNegative(value int32) int32 {
+	if value < 0 {
+		return 0
+	}
+	return value
+}
+
 func resourceSummaryFits(required, capacity astrav1alpha1.ResourceSummary) (bool, string) {
 	if required.GPUCount > capacity.GPUCount {
 		return false, resourceFitReason("gpuCount", required.GPUCount, capacity.GPUCount)

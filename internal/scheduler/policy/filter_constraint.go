@@ -180,5 +180,48 @@ func (c TimeWindowEnvelopeConstraint) Check(
 	profile *astrav1alpha1.AIWorkloadProfile,
 	node *astrav1alpha1.AINodeResourceProfile,
 ) FilterDecision {
-	return c.check(profile, node)
+	if profile == nil || node == nil {
+		return FilterDecision{Allowed: false, Reason: "missing profile or node for time-window check"}
+	}
+	if !isOnlineWorkload(profile.Spec.WorkloadType) || len(profile.Spec.TimeWindows) == 0 {
+		return FilterDecision{Allowed: true, Reason: "time-window hard check not required"}
+	}
+
+	capacity, ok := nodeCapacityForEnvelope(node)
+	if !ok {
+		return FilterDecision{Allowed: true, Reason: "node has no allocatable capacity for time-window envelope check"}
+	}
+
+	currentRequired := requiredResources(profile)
+	currentMax := maxResources(profile)
+	if resourceSummaryIsZero(currentMax) {
+		return FilterDecision{Allowed: true, Reason: "workload has no max resource envelope"}
+	}
+
+	for hour := 0; hour < 24; hour++ {
+		total := nodeForecastResourceForHour(node, hour)
+		total = addResourceSummary(total, resourcesForHour(profile.Spec.TimeWindows, currentRequired, currentMax, hour))
+
+		if fits, reason := resourceSummaryFits(total, capacity); !fits {
+			reclaimable := reclaimableResourceForHour(profile, node, hour)
+			if !resourceSummaryIsZero(reclaimable) {
+				adjusted := subtractResourceSummary(total, reclaimable)
+				if adjustedFits, _ := resourceSummaryFits(adjusted, capacity); adjustedFits {
+					continue
+				}
+			}
+
+			return FilterDecision{
+				Allowed: false,
+				Reason: fmt.Sprintf(
+					"time-window hourly envelope rejected: workload=%s hour=%02d:00 reason=%s",
+					profile.Name,
+					hour,
+					reason,
+				),
+			}
+		}
+	}
+
+	return FilterDecision{Allowed: true, Reason: "hourly time-window resource envelopes fit"}
 }

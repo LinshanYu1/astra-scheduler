@@ -153,6 +153,8 @@ func (r *Reconciler) applyPlan(
 	allocation := plan.Allocation
 	if allocation.Status.Phase == string(astrav1alpha1.AllocationPhaseApplied) &&
 		allocation.Status.ObservedResources != nil &&
+		allocation.Status.Current != nil &&
+		allocation.Status.HourlyForecast != nil &&
 		apiequality.Semantic.DeepEqual(*allocation.Status.ObservedResources, plan.AssignedResources) {
 		return nil
 	}
@@ -183,7 +185,7 @@ func (r *Reconciler) applyPlan(
 		return err
 	}
 
-	return r.status.markApplied(ctx, &allocation, result)
+	return r.status.markApplied(ctx, &allocation, plan, result)
 }
 
 func (r *Reconciler) handleMigrationPlan(
@@ -235,8 +237,19 @@ func (r *Reconciler) sourcePodForAllocation(ctx context.Context, allocation *ast
 		return nil, fmt.Errorf("allocation %s/%s has no source pod reference", allocation.Namespace, allocation.Name)
 	}
 
+	podNamespace := allocation.Spec.WorkloadRef.Namespace
+	if podNamespace == "" && len(allocation.Spec.Workloads) == 1 {
+		podNamespace = allocation.Spec.Workloads[0].WorkloadRef.Namespace
+	}
+	if podNamespace == "" {
+		podNamespace = allocation.Labels[plugin.AllocationLabelWorkloadNamespace]
+	}
+	if podNamespace == "" {
+		podNamespace = allocation.Namespace
+	}
+
 	pod := &corev1.Pod{}
-	if err := r.client.Get(ctx, client.ObjectKey{Namespace: allocation.Namespace, Name: podName}, pod); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: podNamespace, Name: podName}, pod); err != nil {
 		return nil, err
 	}
 	return pod, nil
@@ -429,7 +442,7 @@ func (r *Reconciler) listNodeAllocations(ctx context.Context) ([]astrav1alpha1.A
 		return nil, err
 	}
 
-	allocations := make([]astrav1alpha1.AIResourceAllocation, 0, len(list.Items))
+	ledgers := make([]astrav1alpha1.AIResourceAllocation, 0, len(list.Items))
 	for _, allocation := range list.Items {
 		if allocation.Spec.NodeName != r.config.NodeName {
 			continue
@@ -437,10 +450,10 @@ func (r *Reconciler) listNodeAllocations(ctx context.Context) ([]astrav1alpha1.A
 		if allocation.Status.Phase == string(astrav1alpha1.AllocationPhaseReleased) {
 			continue
 		}
-		allocations = append(allocations, allocation)
+		ledgers = append(ledgers, allocation)
 	}
 
-	return allocations, nil
+	return expandNodeAllocationLedgers(ledgers), nil
 }
 
 func replacementPodName(sourcePodName, allocationName string) string {

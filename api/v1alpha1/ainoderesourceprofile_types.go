@@ -179,6 +179,12 @@ type AINodeResourceProfileStatus struct {
 	// +optional
 	Available *ResourceSummary `json:"available,omitempty"`
 
+	// hourlyForecast summarizes the node-level expected resource envelope for
+	// each hour of a day. resourceBuckets[0] is 00:00-01:00 and
+	// resourceBuckets[23] is 23:00-24:00.
+	// +optional
+	HourlyForecast *HourlyResourceForecast `json:"hourlyForecast,omitempty"`
+
 	// runtime describes runtime pressure and observed serving signals.
 	// +optional
 	Runtime *RuntimeStatus `json:"runtime,omitempty"`
@@ -324,6 +330,12 @@ type NodeAllocationStatus struct {
 	AssignedGPU *AssignedGPU `json:"assignedGPU,omitempty"`
 	// +optional
 	Resources *ResourceSummary `json:"resources,omitempty"`
+	// current describes the resources the node agent actually applied most recently.
+	// +optional
+	Current *ResourceSummary `json:"current,omitempty"`
+	// hourlyForecast describes the expected 24-hour resource envelope for this allocation.
+	// +optional
+	HourlyForecast *HourlyResourceForecast `json:"hourlyForecast,omitempty"`
 	// +optional
 	Actions *AllocationActions `json:"actions,omitempty"`
 	// +optional

@@ -262,6 +262,29 @@ spec:
                         migSliceID:
                           type: string
                       type: object
+                    current:
+                      description: current describes the resources the node agent
+                        actually applied most recently.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
                     demandShape:
                       description: demandShape describes whether the workload is prefill-heavy,
                         decode-heavy, kv-heavy, or mixed.
@@ -271,6 +294,48 @@ spec:
                       - prefill_heavy
                       - decode_heavy
                       type: string
+                    hourlyForecast:
+                      description: hourlyForecast describes the expected 24-hour resource
+                        envelope for this allocation.
+                      properties:
+                        generatedAt:
+                          description: generatedAt is the time when the forecast was
+                            generated.
+                          format: date-time
+                          type: string
+                        resourceBuckets:
+                          description: resourceBuckets contains 24 resource summaries
+                            ordered by hour of day.
+                          items:
+                            description: ResourceSummary summarizes GPU and runtime
+                              resources at node level.
+                            properties:
+                              decodeTokensPerSecond:
+                                format: int32
+                                type: integer
+                              gpuCount:
+                                format: int32
+                                type: integer
+                              gpuMemoryGiB:
+                                format: int32
+                                type: integer
+                              kvCacheGiB:
+                                format: int32
+                                type: integer
+                              prefillTokensPerSecond:
+                                format: int32
+                                type: integer
+                              totalTokensPerSecond:
+                                format: int32
+                                type: integer
+                            type: object
+                          maxItems: 24
+                          type: array
+                        timezone:
+                          description: timezone describes the business timezone used
+                            to interpret the 0-23 buckets.
+                          type: string
+                      type: object
                     name:
                       type: string
                     namespace:
@@ -580,6 +645,49 @@ spec:
                 x-kubernetes-list-map-keys:
                 - id
                 x-kubernetes-list-type: map
+              hourlyForecast:
+                description: |-
+                  hourlyForecast summarizes the node-level expected resource envelope for
+                  each hour of a day. resourceBuckets[0] is 00:00-01:00 and
+                  resourceBuckets[23] is 23:00-24:00.
+                properties:
+                  generatedAt:
+                    description: generatedAt is the time when the forecast was generated.
+                    format: date-time
+                    type: string
+                  resourceBuckets:
+                    description: resourceBuckets contains 24 resource summaries ordered
+                      by hour of day.
+                    items:
+                      description: ResourceSummary summarizes GPU and runtime resources
+                        at node level.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    maxItems: 24
+                    type: array
+                  timezone:
+                    description: timezone describes the business timezone used to
+                      interpret the 0-23 buckets.
+                    type: string
+                type: object
               observedAt:
                 description: observedAt is the last time this profile was refreshed
                   by the agent.

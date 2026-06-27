@@ -23,8 +23,8 @@ collect_common() {
   kubectl get nodes -o wide >"${out_dir}/nodes.txt" 2>&1 || true
   kubectl get pods -n astra-eval -o wide >"${out_dir}/pods-wide.txt" 2>&1 || true
   kubectl get pods -n astra-eval -o yaml >"${out_dir}/pods.yaml" 2>&1 || true
-  kubectl get airesourceallocations -n astra-eval -o wide >"${out_dir}/allocations-wide.txt" 2>&1 || true
-  kubectl get airesourceallocations -n astra-eval -o yaml >"${out_dir}/allocations.yaml" 2>&1 || true
+  kubectl get airesourceallocations -A -o wide >"${out_dir}/allocations-wide.txt" 2>&1 || true
+  kubectl get airesourceallocations -A -o yaml >"${out_dir}/allocations.yaml" 2>&1 || true
   kubectl get ainoderesourceprofiles -n astra-scheduler-system -o wide >"${out_dir}/nodeprofiles-wide.txt" 2>&1 || true
   kubectl get ainoderesourceprofiles -n astra-scheduler-system -o yaml >"${out_dir}/nodeprofiles.yaml" 2>&1 || true
   kubectl get events -n astra-eval --sort-by=.lastTimestamp >"${out_dir}/events.txt" 2>&1 || true
@@ -58,12 +58,26 @@ for scenario in "${SCENARIOS[@]}"; do
   : >"${out_dir}/cleanup.log"
   while IFS= read -r previous_manifest; do
     kubectl delete -f "${previous_manifest}" --ignore-not-found=true >>"${out_dir}/cleanup.log" 2>&1 || true
-  done < <(find "${ROOT_DIR}/evaluation/scenarios" -mindepth 2 -maxdepth 2 -name manifests.yaml | sort)
+  done < <(find "${ROOT_DIR}/evaluation/scenarios" -mindepth 2 -maxdepth 2 \( -name manifests.yaml -o -name 'phase*.yaml' \) | sort)
+  kubectl delete deployments,pods,aiworkloadprofiles -n astra-eval --all --ignore-not-found=true >>"${out_dir}/cleanup.log" 2>&1 || true
   kubectl delete airesourceallocations --all --all-namespaces --ignore-not-found=true >>"${out_dir}/cleanup.log" 2>&1 || true
   sleep 5
 
   echo "[astra-eval] apply ${scenario}"
-  kubectl apply -f "${manifest}" >"${out_dir}/apply.log" 2>&1
+  if [[ -f "${scenario_dir}/phase1-low.yaml" && -f "${scenario_dir}/phase2-peak.yaml" ]]; then
+    cp "${scenario_dir}/phase1-low.yaml" "${out_dir}/phase1-low.yaml"
+    cp "${scenario_dir}/phase2-peak.yaml" "${out_dir}/phase2-peak.yaml"
+    {
+      echo "[astra-eval] apply phase1-low"
+      kubectl apply -f "${scenario_dir}/phase1-low.yaml"
+      echo "[astra-eval] wait for phase1 ${WAIT_SECONDS}s"
+      sleep "${WAIT_SECONDS}"
+      echo "[astra-eval] apply phase2-peak"
+      kubectl apply -f "${scenario_dir}/phase2-peak.yaml"
+    } >"${out_dir}/apply.log" 2>&1
+  else
+    kubectl apply -f "${manifest}" >"${out_dir}/apply.log" 2>&1
+  fi
 
   echo "[astra-eval] wait ${WAIT_SECONDS}s"
   sleep "${WAIT_SECONDS}"

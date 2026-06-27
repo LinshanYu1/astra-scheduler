@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	astrav1alpha1 "github.com/linshanyu/astra-scheduler/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,7 @@ func (b *FakeBackend) Snapshot(ctx context.Context, req SnapshotRequest) (Snapsh
 	status.Allocated = allocatedFromAllocations(req.Allocations)
 	status.Available = subtractResources(status.Allocatable, status.Allocated)
 	status.Allocations = nodeAllocationStatuses(req.Allocations)
+	status.HourlyForecast = hourlyForecastFromAllocations(req.Allocations)
 
 	if status.Runtime == nil {
 		status.Runtime = &astrav1alpha1.RuntimeStatus{}
@@ -153,7 +155,10 @@ func allocatableFromNode(node *astrav1alpha1.AINodeResourceProfile) *astrav1alph
 func allocatedFromAllocations(allocations []astrav1alpha1.AIResourceAllocation) *astrav1alpha1.ResourceSummary {
 	summary := &astrav1alpha1.ResourceSummary{}
 	for _, allocation := range allocations {
-		resources := allocation.Status.ObservedResources
+		resources := allocation.Status.Current
+		if resources == nil {
+			resources = allocation.Status.ObservedResources
+		}
 		if resources == nil {
 			resources = allocation.Spec.Resources
 		}
@@ -169,9 +174,13 @@ func nodeAllocationStatuses(allocations []astrav1alpha1.AIResourceAllocation) []
 	statuses := make([]astrav1alpha1.NodeAllocationStatus, 0, len(allocations))
 	for _, allocation := range allocations {
 		workloadName := allocation.Spec.WorkloadRef.Name
+		workloadNamespace := allocation.Spec.WorkloadRef.Namespace
+		if workloadNamespace == "" {
+			workloadNamespace = allocation.Namespace
+		}
 		statuses = append(statuses, astrav1alpha1.NodeAllocationStatus{
 			Name:            allocation.Name,
-			Namespace:       allocation.Namespace,
+			Namespace:       workloadNamespace,
 			WorkloadName:    workloadName,
 			WorkloadType:    allocation.Spec.WorkloadType,
 			Priority:        allocation.Spec.Priority,
@@ -180,6 +189,8 @@ func nodeAllocationStatuses(allocations []astrav1alpha1.AIResourceAllocation) []
 			ResourceRequest: allocation.Spec.ResourceRequest,
 			AssignedGPU:     allocation.Spec.AssignedGPU,
 			Resources:       allocationResources(allocation),
+			Current:         allocation.Status.Current,
+			HourlyForecast:  allocation.Status.HourlyForecast,
 			Actions:         allocation.Spec.Actions,
 			Phase:           allocation.Status.Phase,
 		})
@@ -187,7 +198,45 @@ func nodeAllocationStatuses(allocations []astrav1alpha1.AIResourceAllocation) []
 	return statuses
 }
 
+func hourlyForecastFromAllocations(allocations []astrav1alpha1.AIResourceAllocation) *astrav1alpha1.HourlyResourceForecast {
+	buckets := make([]astrav1alpha1.ResourceSummary, 24)
+	timezone := ""
+
+	for _, allocation := range allocations {
+		if strings.EqualFold(allocation.Status.Phase, string(astrav1alpha1.AllocationPhaseReleased)) {
+			continue
+		}
+
+		if allocation.Status.HourlyForecast != nil {
+			if timezone == "" {
+				timezone = allocation.Status.HourlyForecast.Timezone
+			}
+			for hour := 0; hour < 24 && hour < len(allocation.Status.HourlyForecast.ResourceBuckets); hour++ {
+				value := allocation.Status.HourlyForecast.ResourceBuckets[hour]
+				addResources(&buckets[hour], &value)
+			}
+			continue
+		}
+
+		resources := allocationResources(allocation)
+		if resources == nil {
+			continue
+		}
+		for hour := 0; hour < 24; hour++ {
+			addResources(&buckets[hour], resources)
+		}
+	}
+
+	return &astrav1alpha1.HourlyResourceForecast{
+		Timezone:        timezone,
+		ResourceBuckets: buckets,
+	}
+}
+
 func allocationResources(allocation astrav1alpha1.AIResourceAllocation) *astrav1alpha1.ResourceSummary {
+	if allocation.Status.Current != nil {
+		return allocation.Status.Current
+	}
 	if allocation.Status.ObservedResources != nil {
 		return allocation.Status.ObservedResources
 	}

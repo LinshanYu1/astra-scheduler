@@ -427,6 +427,21 @@ func TestFilterRejectsOverlappingOnlinePeakEnvelopes(t *testing.T) {
 	}
 }
 
+func TestFilterRejectsHourlyEnvelopeEvenWhenPairwiseWouldFit(t *testing.T) {
+	p := NewSimplePolicy()
+	profile := timeWindowEnvelopeProfile("workload-a", "20:00", "08:00", 10, 30)
+	node := timeWindowEnvelopeNode(
+		45,
+		timeWindowEnvelopeAllocation("workload-b", "12:00", "19:00", 10, 20),
+		timeWindowEnvelopeAllocation("workload-c", "09:00", "11:00", 10, 20),
+	)
+
+	decision := p.Filter(profile, node)
+	if decision.Allowed {
+		t.Fatalf("expected hourly envelope to reject aggregate required load")
+	}
+}
+
 func TestTimeWindowsOverlapHandlesOvernightWindows(t *testing.T) {
 	left := []astrav1alpha1.TimeWindow{{Name: "evening", Start: "20:00", End: "02:00"}}
 	right := []astrav1alpha1.TimeWindow{{Name: "late-night", Start: "01:00", End: "03:00"}}
@@ -727,7 +742,33 @@ func timeWindowEnvelopeNode(capacityDecode int32, allocations ...astrav1alpha1.N
 	node.Spec.Runtime = tokenAndKVRuntime()
 	node.Status.Allocatable = &capacity
 	node.Status.Allocations = allocations
+	node.Status.HourlyForecast = timeWindowEnvelopeForecast(allocations...)
 	return node
+}
+
+func timeWindowEnvelopeForecast(allocations ...astrav1alpha1.NodeAllocationStatus) *astrav1alpha1.HourlyResourceForecast {
+	buckets := make([]astrav1alpha1.ResourceSummary, 24)
+	for _, allocation := range allocations {
+		required := astrav1alpha1.ResourceSummary{}
+		max := astrav1alpha1.ResourceSummary{}
+		if allocation.ResourceRequest != nil {
+			if allocation.ResourceRequest.Required != nil {
+				required = *allocation.ResourceRequest.Required
+			}
+			if allocation.ResourceRequest.Max != nil {
+				max = *allocation.ResourceRequest.Max
+			}
+		}
+		for hour := 0; hour < 24; hour++ {
+			buckets[hour] = addResourceSummary(
+				buckets[hour],
+				resourcesForHour(allocation.TimeWindows, required, max, hour),
+			)
+		}
+	}
+	return &astrav1alpha1.HourlyResourceForecast{
+		ResourceBuckets: buckets,
+	}
 }
 
 func timeWindowEnvelopeAllocation(name, start, end string, requiredDecode, maxDecode int32) astrav1alpha1.NodeAllocationStatus {

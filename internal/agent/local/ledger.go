@@ -222,6 +222,9 @@ func minuteInWindow(current, start, end int) bool {
 }
 
 func allocationKey(allocation astrav1alpha1.AIResourceAllocation) string {
+	if len(allocation.Spec.Workloads) == 1 && allocation.Spec.Workloads[0].Name != "" {
+		return allocation.Spec.Workloads[0].Name
+	}
 	if allocation.Namespace == "" {
 		return allocation.Name
 	}

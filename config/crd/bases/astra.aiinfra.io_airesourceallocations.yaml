@@ -15,21 +15,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.workloadRef.name
-      name: Workload
-      type: string
-    - jsonPath: .spec.workloadRef.namespace
-      name: Namespace
-      type: string
     - jsonPath: .spec.nodeName
       name: Node
-      type: string
-    - jsonPath: .spec.allocationType
-      name: Type
       type: string
     - jsonPath: .status.phase
       name: Phase
       type: string
+    - jsonPath: .status.nodeLedger.available.gpuCount
+      name: GPU
+      type: integer
+    - jsonPath: .status.nodeLedger.available.kvCacheGiB
+      name: KVCache
+      type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -60,8 +57,9 @@ spec:
             description: spec defines the desired state of AIResourceAllocation.
             properties:
               actions:
-                description: actions describes what the agent may do to this allocation
-                  later.
+                description: |-
+                  actions describes what the agent may do to this allocation later.
+                  Deprecated: use workloads[].actions.
                 properties:
                   evictable:
                     type: boolean
@@ -76,10 +74,12 @@ spec:
                 description: |-
                   allocationType describes the resource ownership model.
                   Examples: guaranteed, borrowed, reclaimed.
+                  Deprecated: use workloads[].allocationType.
                 type: string
               assignedGPU:
-                description: assignedGPU identifies the physical GPU or MIG slice
-                  selected by the scheduler.
+                description: |-
+                  assignedGPU identifies the physical GPU or MIG slice selected by the scheduler.
+                  Deprecated: use workloads[].assignedGPU.
                 properties:
                   gpuID:
                     type: string
@@ -87,8 +87,9 @@ spec:
                     type: string
                 type: object
               demandShape:
-                description: demandShape is copied from AIWorkloadProfile for workload-mix-aware
-                  scheduling.
+                description: |-
+                  demandShape is copied from AIWorkloadProfile for workload-mix-aware scheduling.
+                  Deprecated: use workloads[].demandShape.
                 enum:
                 - mixed
                 - kv_heavy
@@ -96,20 +97,23 @@ spec:
                 - decode_heavy
                 type: string
               nodeName:
-                description: nodeName is the target Kubernetes node chosen by the
-                  scheduler.
+                description: nodeName is the target Kubernetes node represented by
+                  this allocation ledger.
                 type: string
               priority:
-                description: priority is copied from AIWorkloadProfile for node-local
-                  resource ordering.
+                description: |-
+                  priority is copied from AIWorkloadProfile for node-local resource ordering.
+                  Deprecated: use workloads[].priority.
                 type: string
               reason:
-                description: reason is a human-readable explanation from the scheduler.
+                description: reason is a human-readable explanation from the scheduler
+                  or agent.
                 type: string
               resourceRequest:
                 description: |-
                   resourceRequest is copied from AIWorkloadProfile so the scheduler and
                   agent can reason about required/preferred/max budgets after placement.
+                  Deprecated: use workloads[].resourceRequest.
                 properties:
                   max:
                     description: |-
@@ -184,8 +188,9 @@ spec:
                     type: object
                 type: object
               resources:
-                description: resources describes the concrete resource budget assigned
-                  by the scheduler.
+                description: |-
+                  resources describes the concrete resource budget assigned by the scheduler.
+                  Deprecated: use workloads[].resources.
                 properties:
                   decodeTokensPerSecond:
                     format: int32
@@ -207,8 +212,9 @@ spec:
                     type: integer
                 type: object
               timeWindows:
-                description: timeWindows is copied from AIWorkloadProfile for time-aware
-                  node scoring.
+                description: |-
+                  timeWindows is copied from AIWorkloadProfile for time-aware node scoring.
+                  Deprecated: use workloads[].timeWindows.
                 items:
                   description: TimeWindow describes a repeating daily business window.
                   properties:
@@ -236,7 +242,7 @@ spec:
               workloadRef:
                 description: |-
                   workloadRef points to the AIWorkloadProfile that owns this allocation.
-                  The referenced profile is usually in the same namespace as this allocation.
+                  Deprecated: use workloads[].workloadRef for the node-level allocation ledger.
                 properties:
                   apiVersion:
                     type: string
@@ -257,10 +263,260 @@ spec:
                 description: |-
                   workloadType describes whether the workload is online, offline, or hybrid.
                   It is copied from AIWorkloadProfile so node agents can reason about local mix.
+                  Deprecated: use workloads[].workloadType.
                 type: string
+              workloads:
+                description: |-
+                  workloads describes desired workload allocations on this node.
+                  This is the primary field for the node-level allocation design.
+                items:
+                  description: AllocationWorkloadSpec describes one workload entry
+                    inside a node allocation ledger.
+                  properties:
+                    actions:
+                      description: actions describes what the node agent may do to
+                        this workload.
+                      properties:
+                        evictable:
+                          type: boolean
+                        pauseable:
+                          type: boolean
+                        reclaimable:
+                          type: boolean
+                        throttleable:
+                          type: boolean
+                      type: object
+                    allocationType:
+                      description: allocationType describes the ownership model, such
+                        as guaranteed, borrowed, or reclaimed.
+                      type: string
+                    assignedGPU:
+                      description: assignedGPU identifies the physical GPU or MIG
+                        slice selected for this workload.
+                      properties:
+                        gpuID:
+                          type: string
+                        migSliceID:
+                          type: string
+                      type: object
+                    demandShape:
+                      description: demandShape describes whether the workload is prefill-heavy,
+                        decode-heavy, kv-heavy, or mixed.
+                      enum:
+                      - mixed
+                      - kv_heavy
+                      - prefill_heavy
+                      - decode_heavy
+                      type: string
+                    desired:
+                      description: |-
+                        desired describes the node-local target budget for this workload.
+                        It may be required, preferred, max, or a throttled budget depending on
+                        priority, time window, and local resource pressure.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    name:
+                      description: |-
+                        name is a stable key for this workload entry inside the node ledger.
+                        It is usually derived from namespace/name of the workload profile.
+                      type: string
+                    priority:
+                      description: priority is copied from AIWorkloadProfile for node-local
+                        resource ordering.
+                      type: string
+                    reason:
+                      description: reason is a human-readable explanation from the
+                        scheduler or node agent.
+                      type: string
+                    resourceRequest:
+                      description: resourceRequest describes required/preferred/max
+                        budgets copied from the workload profile.
+                      properties:
+                        max:
+                          description: |-
+                            max is the peak resource budget used for time-window feasibility checks.
+                            It describes how much resource this workload may need during its active
+                            business window. If omitted, preferred is used as the peak budget.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                        preferred:
+                          description: preferred is the target resource budget used
+                            for scoring and elastic growth.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                        required:
+                          description: required is the minimum resource budget needed
+                            to place this workload.
+                          properties:
+                            decodeTokensPerSecond:
+                              format: int32
+                              type: integer
+                            gpuCount:
+                              format: int32
+                              type: integer
+                            gpuMemoryGiB:
+                              format: int32
+                              type: integer
+                            kvCacheGiB:
+                              format: int32
+                              type: integer
+                            prefillTokensPerSecond:
+                              format: int32
+                              type: integer
+                            totalTokensPerSecond:
+                              format: int32
+                              type: integer
+                          type: object
+                      type: object
+                    resources:
+                      description: resources describes the concrete resource budget
+                        desired for this workload.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    sourcePodName:
+                      description: |-
+                        sourcePodName is the Kubernetes Pod that caused this workload entry.
+                        It lets the node agent migrate or release the concrete Pod without
+                        relying on node-level object annotations.
+                      type: string
+                    sourcePodUID:
+                      description: sourcePodUID is the UID of sourcePodName.
+                      type: string
+                    timeWindows:
+                      description: timeWindows describes the business windows copied
+                        from the workload profile.
+                      items:
+                        description: TimeWindow describes a repeating daily business
+                          window.
+                        properties:
+                          end:
+                            description: end is a local wall-clock time in HH:MM format.
+                              It may be earlier than start for overnight windows.
+                            type: string
+                          name:
+                            type: string
+                          start:
+                            description: start is a local wall-clock time in HH:MM
+                              format.
+                            type: string
+                          timezone:
+                            description: timezone is an IANA timezone name, such as
+                              America/New_York.
+                            type: string
+                        required:
+                        - end
+                        - name
+                        - start
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                    workloadRef:
+                      description: workloadRef points to the AIWorkloadProfile represented
+                        by this entry.
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          description: namespace is optional because some referenced
+                            objects can be cluster-scoped.
+                          type: string
+                      required:
+                      - apiVersion
+                      - kind
+                      - name
+                      type: object
+                    workloadType:
+                      description: workloadType describes whether the workload is
+                        online, offline, or hybrid.
+                      type: string
+                  required:
+                  - name
+                  - workloadRef
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             required:
             - nodeName
-            - workloadRef
             type: object
           status:
             description: status defines the observed state of AIResourceAllocation.
@@ -331,17 +587,161 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              current:
+                description: |-
+                  current describes the resources that the node agent actually applied most recently.
+                  It is the runtime truth used for node-local accounting.
+                  Deprecated: use nodeLedger.allocated or workloads[].applied.
+                properties:
+                  decodeTokensPerSecond:
+                    format: int32
+                    type: integer
+                  gpuCount:
+                    format: int32
+                    type: integer
+                  gpuMemoryGiB:
+                    format: int32
+                    type: integer
+                  kvCacheGiB:
+                    format: int32
+                    type: integer
+                  prefillTokensPerSecond:
+                    format: int32
+                    type: integer
+                  totalTokensPerSecond:
+                    format: int32
+                    type: integer
+                type: object
+              hourlyForecast:
+                description: |-
+                  hourlyForecast describes the expected resource envelope for each hour of a day.
+                  resourceBuckets[0] is 00:00-01:00, resourceBuckets[23] is 23:00-24:00.
+                  It is generated by the node agent from the allocation profile snapshot.
+                properties:
+                  generatedAt:
+                    description: generatedAt is the time when the forecast was generated.
+                    format: date-time
+                    type: string
+                  resourceBuckets:
+                    description: resourceBuckets contains 24 resource summaries ordered
+                      by hour of day.
+                    items:
+                      description: ResourceSummary summarizes GPU and runtime resources
+                        at node level.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    maxItems: 24
+                    type: array
+                  timezone:
+                    description: timezone describes the business timezone used to
+                      interpret the 0-23 buckets.
+                    type: string
+                type: object
               message:
                 description: message is a short human-readable status message.
                 type: string
+              nodeLedger:
+                description: |-
+                  nodeLedger describes the node-level resource ledger observed by the agent.
+                  It is the primary status field for the node-level allocation design.
+                properties:
+                  allocated:
+                    description: allocated is the sum of resources currently applied
+                      to workloads.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                  available:
+                    description: available is total minus allocated from the ledger
+                      view.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                  total:
+                    description: total is the node capacity used by the allocation
+                      ledger.
+                    properties:
+                      decodeTokensPerSecond:
+                        format: int32
+                        type: integer
+                      gpuCount:
+                        format: int32
+                        type: integer
+                      gpuMemoryGiB:
+                        format: int32
+                        type: integer
+                      kvCacheGiB:
+                        format: int32
+                        type: integer
+                      prefillTokensPerSecond:
+                        format: int32
+                        type: integer
+                      totalTokensPerSecond:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               observedAt:
                 description: observedAt is the last time this allocation was observed
                   by the agent.
                 format: date-time
                 type: string
               observedResources:
-                description: observedResources describes the runtime resources observed
-                  after applying the allocation.
+                description: |-
+                  observedResources describes the runtime resources observed after applying the allocation.
+                  Deprecated: use nodeLedger.allocated or workloads[].applied.
                 properties:
                   decodeTokensPerSecond:
                     format: int32
@@ -367,6 +767,173 @@ spec:
                   phase is the high-level execution phase reported by the node agent.
                   Examples: Pending, Applying, Applied, Failed, Releasing, Released.
                 type: string
+              workloads:
+                description: workloads describes observed per-workload allocation
+                  states on this node.
+                items:
+                  description: AllocationWorkloadStatus describes one workload's observed
+                    state inside a node allocation ledger.
+                  properties:
+                    action:
+                      description: action is the latest local action, such as keep,
+                        throttle, pause, evict, or migrate.
+                      type: string
+                    activeWindow:
+                      description: activeWindow indicates whether this workload is
+                        currently inside a peak time window.
+                      type: boolean
+                    applied:
+                      description: applied is the resource budget actually applied
+                        by the backend.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    assignedGPU:
+                      description: assignedGPU identifies the physical GPU or MIG
+                        slice used by this workload.
+                      properties:
+                        gpuID:
+                          type: string
+                        migSliceID:
+                          type: string
+                      type: object
+                    demandShape:
+                      description: demandShape is copied from the workload profile
+                        for easier inspection.
+                      enum:
+                      - mixed
+                      - kv_heavy
+                      - prefill_heavy
+                      - decode_heavy
+                      type: string
+                    desired:
+                      description: desired is the resource target chosen by the local
+                        scheduler for this workload.
+                      properties:
+                        decodeTokensPerSecond:
+                          format: int32
+                          type: integer
+                        gpuCount:
+                          format: int32
+                          type: integer
+                        gpuMemoryGiB:
+                          format: int32
+                          type: integer
+                        kvCacheGiB:
+                          format: int32
+                          type: integer
+                        prefillTokensPerSecond:
+                          format: int32
+                          type: integer
+                        totalTokensPerSecond:
+                          format: int32
+                          type: integer
+                      type: object
+                    hourlyForecast:
+                      description: hourlyForecast describes this workload's expected
+                        24-hour resource envelope.
+                      properties:
+                        generatedAt:
+                          description: generatedAt is the time when the forecast was
+                            generated.
+                          format: date-time
+                          type: string
+                        resourceBuckets:
+                          description: resourceBuckets contains 24 resource summaries
+                            ordered by hour of day.
+                          items:
+                            description: ResourceSummary summarizes GPU and runtime
+                              resources at node level.
+                            properties:
+                              decodeTokensPerSecond:
+                                format: int32
+                                type: integer
+                              gpuCount:
+                                format: int32
+                                type: integer
+                              gpuMemoryGiB:
+                                format: int32
+                                type: integer
+                              kvCacheGiB:
+                                format: int32
+                                type: integer
+                              prefillTokensPerSecond:
+                                format: int32
+                                type: integer
+                              totalTokensPerSecond:
+                                format: int32
+                                type: integer
+                            type: object
+                          maxItems: 24
+                          type: array
+                        timezone:
+                          description: timezone describes the business timezone used
+                            to interpret the 0-23 buckets.
+                          type: string
+                      type: object
+                    message:
+                      description: message explains the current workload-level allocation
+                        state.
+                      type: string
+                    name:
+                      description: name is the stable key matching spec.workloads[].name.
+                      type: string
+                    phase:
+                      description: |-
+                        phase is this workload entry's node-local phase.
+                        Examples: PendingApply, Applied, Throttled, Paused, Migrating, Released, Failed.
+                      type: string
+                    priority:
+                      description: priority is copied from the workload profile for
+                        easier inspection.
+                      type: string
+                    sourcePodName:
+                      description: sourcePodName is the Kubernetes Pod represented
+                        by this status entry.
+                      type: string
+                    workloadRef:
+                      description: workloadRef points to the workload profile represented
+                        by this status entry.
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          description: namespace is optional because some referenced
+                            objects can be cluster-scoped.
+                          type: string
+                      required:
+                      - apiVersion
+                      - kind
+                      - name
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec

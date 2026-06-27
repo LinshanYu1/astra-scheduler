@@ -4,6 +4,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"k8s.io/kube-scheduler/framework"
 )
 
@@ -51,6 +52,7 @@ func (p *AstraScheduler) Filter(ctx context.Context, state framework.CycleState,
 	}
 
 	decision := p.policy.Filter(profile, nodeResource)
+	klog.V(4).InfoS("AstraScheduler Filter", "pod", klog.KObj(pod), "node", node.Name, "allowed", decision.Allowed, "reason", decision.Reason)
 	if !decision.Allowed {
 		return framework.NewStatus(framework.Unschedulable, decision.Reason)
 	}

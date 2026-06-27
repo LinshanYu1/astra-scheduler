@@ -138,13 +138,6 @@ func (c *ScoreComposer) Normalize(details map[string]NodeScoreDetail) map[string
 		return decisions
 	}
 
-	maxPreferredMatched := 0
-	for _, detail := range details {
-		if detail.PreferredMatched > maxPreferredMatched {
-			maxPreferredMatched = detail.PreferredMatched
-		}
-	}
-
 	for nodeName, detail := range details {
 		score := applyMultiplier(detail.WeightedHeadroomScore, detail.TimeWindowMultiplier)
 		score = applyMultiplier(score, detail.MixBalanceMultiplier)
@@ -152,14 +145,8 @@ func (c *ScoreComposer) Normalize(details map[string]NodeScoreDetail) map[string
 		score = applyMultiplier(score, detail.ExtraMultiplier)
 		reasonParts := []string{
 			detail.Reason,
-			fmt.Sprintf("maxPreferredMatched=%d", maxPreferredMatched),
 			fmt.Sprintf("weightedHeadroomScore=%d", detail.WeightedHeadroomScore),
 			fmt.Sprintf("adjustedScore=%d", score),
-		}
-
-		if detail.PreferredMatched < maxPreferredMatched {
-			score = score / 2
-			reasonParts = append(reasonParts, "belowBestPreferredTier=true")
 		}
 
 		totalPenalty := detail.RuntimeRiskPenalty + detail.ExtraPenalty

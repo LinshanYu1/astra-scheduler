@@ -53,7 +53,7 @@ func NewWithOptions(name string, options Options) (Backend, error) {
 	case "", "fake":
 		return NewFakeBackend(options), nil
 	case "real", "nvidia", "runtime", "cri":
-		return NewRealBackend(name), nil
+		return NewRealBackend(name, options), nil
 	default:
 		return nil, fmt.Errorf("unsupported agent backend %q", name)
 	}

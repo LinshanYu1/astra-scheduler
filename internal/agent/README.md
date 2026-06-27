@@ -93,6 +93,11 @@ The main extension points are:
   local plan is built.
 - `Backend`: applies a plan using fake state, NVIDIA/DCGM, runtime APIs, DRA,
   CRI, or another future integration.
+- `LowLevelResourceDriver`: abstracts vendor/runtime-specific hardware and
+  runtime calls. Future implementations can target NVIDIA, AMD, DRA, CRI, or a
+  serving runtime without changing scheduler or agent policy logic.
+- `ResourceIsolator`: enforces or delegates local isolation actions such as
+  GPU/MIG binding, runtime throttling, pause/resume, or eviction.
 - `statusRecorder`: centralizes allocation status transitions so the controller
   does not own the whole allocation state machine.
 
@@ -200,8 +205,17 @@ Future implementations should guarantee that:
 
 ### Real Backend Integration
 
-The current `real` backend is a feasibility skeleton. Future backends can
-integrate with:
+The current `real` backend is an implementation-oriented feasibility backend.
+It depends on a `LowLevelResourceDriver` instead of directly depending on one
+GPU vendor or runtime. The first concrete driver is
+`CommonLowLevelResourceDriver`, which observes physical NVIDIA GPUs through
+`nvidia-smi` when available and reports GPU count, GPU memory, GPU utilization,
+memory pressure, allocation ledger, available resources, and hourly forecast
+through `AINodeResourceProfile.status`.
+
+The write path is intentionally adapter-oriented. The backend records the
+desired allocation state safely, while the actual low-level operation should be
+plugged into the correct runtime or Kubernetes mechanism:
 
 - NVML, DCGM, and NVIDIA device plugin state;
 - MIG observation and controlled reconfiguration;
@@ -209,8 +223,36 @@ integrate with:
 - Kubernetes eviction/delete APIs;
 - CRI/containerd or Dynamic Resource Allocation where appropriate.
 
-The first production-like goal should be read-only observation, followed by
-carefully guarded write actions.
+This keeps the first version deployable on non-GPU test clusters while making
+the real integration boundary explicit.
+
+### Resource Isolation Boundary
+
+Resource isolation is intentionally separated from scoring and planning.
+The scheduler and local planner decide the target budget; the backend and
+low-level resource driver decide how to observe and enforce it.
+
+The current implementation supports a command-based real isolator through the
+common low-level resource driver and the following environment variables:
+
+- `ASTRA_ISOLATION_APPLY_COMMAND`
+- `ASTRA_ISOLATION_THROTTLE_COMMAND`
+- `ASTRA_ISOLATION_PAUSE_COMMAND`
+- `ASTRA_ISOLATION_EVICT_COMMAND`
+
+Each command receives the target allocation through environment variables such
+as `ASTRA_NODE_NAME`, `ASTRA_ALLOCATION_NAME`, `ASTRA_GPU_ID`,
+`ASTRA_MIG_SLICE_ID`, `ASTRA_GPU_COUNT`, `ASTRA_GPU_MEMORY_GIB`,
+`ASTRA_KV_CACHE_GIB`, and token-throughput budgets.
+
+This gives the project a concrete integration path without hardcoding one
+runtime. A production deployment can replace the command adapter with:
+
+- NVIDIA MIG or MPS controls for GPU-level isolation;
+- Kubernetes DRA or device-plugin integration for device assignment;
+- vLLM, SGLang, TGI, Triton, or gateway APIs for concurrency, token, and KV
+  cache isolation;
+- Kubernetes eviction or workload-controller APIs for migration and reclaim.
 
 ### Conflict Protocol with the Central Scheduler
 

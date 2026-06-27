@@ -7,6 +7,7 @@ import (
 	"github.com/linshanyu/astra-scheduler/internal/scheduler/policy"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/kube-scheduler/framework"
 )
 
@@ -49,6 +50,7 @@ func (p *AstraScheduler) Score(ctx context.Context, state framework.CycleState, 
 		return 0, status
 	}
 	initialScore := schedulingState.recordScoreDetail(node.Name, detail)
+	klog.V(4).InfoS("AstraScheduler Score", "pod", klog.KObj(pod), "node", node.Name, "initialScore", initialScore, "preferredMatched", detail.PreferredMatched, "reason", detail.Reason)
 
 	// The final score is assigned in NormalizeScore. This initial score only
 	// preserves the preferred-count tier while all candidate nodes are still
